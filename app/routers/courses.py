@@ -6,7 +6,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import User, Course, Class
+from app.models import User, Course, Class, Assignment, Submission, File
 from app.schemas import Course as CourseSchema, CourseCreate, CourseUpdate
 from app.auth import get_current_user, teacher_required
 
@@ -19,7 +19,13 @@ async def list_courses(
     current_user: User = Depends(teacher_required),
     db: Session = Depends(get_db)
 ):
-    courses = db.query(Course).filter(Course.teacher_id == current_user.id).all()
+    # 对于管理员，显示所有课程
+    if current_user.role == "admin":
+        courses = db.query(Course).all()
+    else:
+        # 教师只看到自己的课程
+        courses = db.query(Course).filter(Course.teacher_id == current_user.id).all()
+    
     return templates.TemplateResponse(
         "courses.html",
         {"request": request, "user": current_user, "courses": courses}
@@ -31,8 +37,11 @@ async def create_course_page(
     current_user: User = Depends(teacher_required),
     db: Session = Depends(get_db)
 ):
-    # 获取教师创建的班级列表供选择
-    available_classes = db.query(Class).filter(Class.teacher_id == current_user.id).all()
+    # 获取教师创建的班级列表或管理员可以看到所有班级
+    if current_user.role == "admin":
+        available_classes = db.query(Class).all()
+    else:
+        available_classes = db.query(Class).filter(Class.teacher_id == current_user.id).all()
     
     return templates.TemplateResponse(
         "course_form.html",
@@ -69,7 +78,8 @@ async def create_course(
     if classes:
         for class_id in classes:
             class_obj = db.query(Class).filter(Class.id == class_id).first()
-            if class_obj and class_obj.teacher_id == current_user.id:
+            # 管理员可以关联任何班级，教师只能关联自己的班级
+            if class_obj and (class_obj.teacher_id == current_user.id or current_user.role == "admin"):
                 new_course.classes.append(class_obj)
         
         db.commit()
@@ -94,11 +104,18 @@ async def view_course(
     # 获取关联班级
     associated_classes = course.classes
     
-    # 获取可用于关联的班级（当前用户创建的，但尚未与此课程关联的班级）
-    available_classes = db.query(Class).filter(
-        Class.teacher_id == current_user.id,
-        ~Class.id.in_([c.id for c in associated_classes])
-    ).all()
+    # 获取可用于关联的班级
+    if current_user.role == "admin":
+        # 管理员可以看到所有班级
+        available_classes = db.query(Class).filter(
+            ~Class.id.in_([c.id for c in associated_classes])
+        ).all()
+    else:
+        # 教师只能看到自己的班级
+        available_classes = db.query(Class).filter(
+            Class.teacher_id == current_user.id,
+            ~Class.id.in_([c.id for c in associated_classes])
+        ).all()
     
     # 获取关联作业
     course_assignments = course.assignments
@@ -230,4 +247,46 @@ async def get_class_courses(
             "name": course.name
         })
     
-    return {"courses": courses} 
+    return {"courses": courses}
+
+@router.get("/delete_course/{course_id}", name="delete_course")
+async def delete_course(
+    course_id: int,
+    current_user: User = Depends(teacher_required),
+    db: Session = Depends(get_db)
+):
+    """删除课程"""
+    course = db.query(Course).filter(Course.id == course_id).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="课程不存在")
+    
+    # 确保只有课程的创建者或管理员可以删除
+    if course.teacher_id != current_user.id and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="无权删除此课程")
+    
+    # 删除课程前先解除相关关联
+    course.classes = []
+    
+    # 获取与课程相关的作业
+    assignments = db.query(Assignment).filter(Assignment.course_id == course_id).all()
+    
+    # 删除作业及其相关提交
+    for assignment in assignments:
+        # 查找相关提交
+        submissions = db.query(Submission).filter(Submission.assignment_id == assignment.id).all()
+        
+        # 删除每个提交及其关联文件
+        for submission in submissions:
+            # 删除文件
+            db.query(File).filter(File.submission_id == submission.id).delete()
+            # 删除提交
+            db.delete(submission)
+        
+        # 删除作业
+        db.delete(assignment)
+    
+    # 删除课程
+    db.delete(course)
+    db.commit()
+    
+    return RedirectResponse(url="/courses", status_code=303) 

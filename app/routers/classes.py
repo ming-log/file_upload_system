@@ -2,15 +2,15 @@ from typing import List
 import csv
 import io
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Form, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Request, Form, UploadFile, File as FastAPIFile
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import User, Class, Course
+from app.models import User, Class, Course, Assignment, Submission, File
 from app.schemas import Class as ClassSchema, ClassCreate, ClassUpdate
-from app.auth import get_current_user, get_password_hash, teacher_required
+from app.auth import get_current_user, get_password_hash, teacher_required, get_token_from_request
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -21,7 +21,12 @@ async def list_classes(
     current_user: User = Depends(teacher_required),
     db: Session = Depends(get_db)
 ):
-    classes = db.query(Class).filter(Class.teacher_id == current_user.id).all()
+    # 管理员可以查看所有班级，教师只能查看自己创建的班级
+    if current_user.role == "admin":
+        classes = db.query(Class).all()
+    else:
+        classes = db.query(Class).filter(Class.teacher_id == current_user.id).all()
+    
     return templates.TemplateResponse(
         "classes.html",
         {"request": request, "user": current_user, "classes": classes}
@@ -33,7 +38,12 @@ async def create_class_page(
     current_user: User = Depends(teacher_required),
     db: Session = Depends(get_db)
 ):
-    courses = db.query(Course).filter(Course.teacher_id == current_user.id).all()
+    # 管理员可以查看所有课程，教师只能查看自己创建的课程
+    if current_user.role == "admin":
+        courses = db.query(Course).all()
+    else:
+        courses = db.query(Course).filter(Course.teacher_id == current_user.id).all()
+    
     return templates.TemplateResponse(
         "class_form.html",
         {
@@ -212,7 +222,7 @@ async def download_student_template():
 @router.post("/classes/{class_id}/students/import", name="import_students")
 async def import_students(
     class_id: int,
-    students_file: UploadFile = File(...),
+    students_file: UploadFile = FastAPIFile(...),
     current_user: User = Depends(teacher_required),
     db: Session = Depends(get_db)
 ):
@@ -281,4 +291,65 @@ async def import_students(
         raise HTTPException(
             status_code=400,
             detail=f"导入过程中出错: {str(e)}"
-        ) 
+        )
+
+@router.get("/delete_class/{class_id}", name="delete_class")
+async def delete_class(
+    request: Request,
+    class_id: int,
+    db: Session = Depends(get_db)
+):
+    """删除班级"""
+    # 先验证用户身份
+    try:
+        token = await get_token_from_request(request)
+        if not token:
+            return RedirectResponse(url="/login", status_code=303)
+        
+        current_user = await get_current_user(request, db)
+        
+        # 确认是管理员或教师
+        if current_user.role != "admin" and current_user.role != "teacher":
+            raise HTTPException(status_code=403, detail="权限不足，需要教师或管理员权限")
+        
+        class_obj = db.query(Class).filter(Class.id == class_id).first()
+        if not class_obj:
+            raise HTTPException(status_code=404, detail="班级不存在")
+        
+        # 确保只有班级的创建者或管理员可以删除
+        if class_obj.teacher_id != current_user.id and current_user.role != "admin":
+            raise HTTPException(status_code=403, detail="无权删除此班级")
+        
+        # 删除班级前先解除相关关联
+        class_obj.courses = []
+        class_obj.students = []
+        
+        # 获取与班级相关的作业
+        assignments = db.query(Assignment).filter(Assignment.class_id == class_id).all()
+        
+        # 删除作业及其相关提交
+        for assignment in assignments:
+            # 查找相关提交
+            submissions = db.query(Submission).filter(Submission.assignment_id == assignment.id).all()
+            
+            # 删除每个提交及其关联文件
+            for submission in submissions:
+                # 删除文件
+                db.query(File).filter(File.submission_id == submission.id).delete()
+                # 删除提交
+                db.delete(submission)
+            
+            # 删除作业
+            db.delete(assignment)
+        
+        # 删除班级
+        db.delete(class_obj)
+        db.commit()
+        
+        return RedirectResponse(url="/classes", status_code=303)
+    
+    except HTTPException as e:
+        # 重定向到登录页面
+        if e.status_code == 401:
+            return RedirectResponse(url="/login", status_code=303)
+        raise e 

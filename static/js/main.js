@@ -19,6 +19,89 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 初始化描述单元格的tooltip功能
     initDescriptionTooltips();
+    
+    // 文件上传控件交互
+    const fileInputs = document.querySelectorAll('.custom-file-input');
+    if (fileInputs.length > 0) {
+        fileInputs.forEach(input => {
+            // 当选择文件后，显示文件名
+            input.addEventListener('change', function(e) {
+                const fileName = e.target.files[0] ? e.target.files[0].name : '选择文件...';
+                const label = e.target.nextElementSibling;
+                if (label) {
+                    label.textContent = fileName;
+                }
+            });
+        });
+    }
+    
+    // 添加学生切换显示
+    const showAddStudentBtn = document.getElementById('showAddStudentBtn');
+    const addStudentSection = document.getElementById('addStudentSection');
+    
+    if (showAddStudentBtn && addStudentSection) {
+        showAddStudentBtn.addEventListener('click', function() {
+            const isVisible = addStudentSection.style.display !== 'none';
+            addStudentSection.style.display = isVisible ? 'none' : 'block';
+            showAddStudentBtn.innerHTML = isVisible ? 
+                '<i class="fas fa-user-plus"></i> 添加学生' : 
+                '<i class="fas fa-times"></i> 取消添加';
+        });
+    }
+    
+    // 单个添加/批量导入切换
+    const addTabButtons = document.querySelectorAll('[data-target]');
+    const addMethods = document.querySelectorAll('.add-method');
+    
+    if (addTabButtons.length > 0 && addMethods.length > 0) {
+        addTabButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // 移除所有活动状态
+                addTabButtons.forEach(btn => {
+                    btn.classList.remove('active');
+                    btn.classList.remove('btn-primary');
+                    btn.classList.add('btn-outline-primary');
+                });
+                
+                // 隐藏所有添加方式
+                addMethods.forEach(method => {
+                    method.classList.remove('active');
+                    method.style.display = 'none';
+                });
+                
+                // 显示选中的添加方式
+                const targetId = this.getAttribute('data-target');
+                const targetMethod = document.getElementById(targetId);
+                if (targetMethod) {
+                    targetMethod.classList.add('active');
+                    targetMethod.style.display = 'block';
+                }
+                
+                // 激活当前按钮
+                this.classList.add('active');
+                this.classList.add('btn-primary');
+                this.classList.remove('btn-outline-primary');
+            });
+        });
+    }
+    
+    // 多选框样式
+    const checkboxes = document.querySelectorAll('.custom-checkbox .custom-control-input');
+    if (checkboxes.length > 0) {
+        checkboxes.forEach(checkbox => {
+            // 为每个复选框添加事件监听
+            checkbox.addEventListener('change', function() {
+                const label = this.nextElementSibling;
+                if (label) {
+                    if (this.checked) {
+                        label.classList.add('checked');
+                    } else {
+                        label.classList.remove('checked');
+                    }
+                }
+            });
+        });
+    }
 });
 
 // 文件上传功能

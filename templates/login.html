@@ -8,15 +8,15 @@
     <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
     <style>
         body {
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
-            padding: 0;
-            overflow: hidden;
+            padding: 2rem 0;
             background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
             font-family: 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', 'Helvetica Neue', sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
+            box-sizing: border-box;
         }
         
         .login-container {
@@ -25,7 +25,8 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 20px;
+            padding: 2rem;
+            margin: auto;
         }
         
         .login-left {
@@ -71,25 +72,28 @@
         }
         
         .login-illustration {
-            width: 80%;
-            max-width: 450px;
+            width: 100%;
+            max-width: 400px;
+            height: auto;
             margin-bottom: 2rem;
+            filter: drop-shadow(0 10px 20px rgba(67, 97, 238, 0.1));
         }
         
         .login-left h2 {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: #4361ee;
-            margin-bottom: 1.5rem;
+            font-size: 2rem;
+            font-weight: 600;
+            color: #2b2d42;
+            margin-bottom: 1rem;
             text-align: center;
         }
         
         .login-left p {
-            font-size: 1.1rem;
-            color: #6c757d;
+            font-size: 1rem;
+            color: #64748b;
             text-align: center;
             max-width: 400px;
             line-height: 1.6;
+            margin: 0 auto;
         }
         
         .login-right {
@@ -104,304 +108,160 @@
             }
         }
         
+        .card {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            border: none;
+            width: 100%;
+            max-width: 400px;
+        }
+        
         .auth-logo {
             text-align: center;
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
         }
         
         .auth-logo i {
-            font-size: 3.5rem;
-            background: linear-gradient(135deg, #4361ee, #48bfe3);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 2px 5px rgba(67, 97, 238, 0.3));
-            transition: transform 0.5s ease;
-        }
-        
-        .auth-logo:hover i {
-            transform: scale(1.1) rotate(15deg);
+            font-size: 2rem;
+            color: #4361ee;
+            margin-bottom: 0.5rem;
         }
         
         .auth-logo h1 {
-            font-size: 2.5rem;
-            font-weight: bold;
-            margin: 0.5rem 0 0;
-            background: linear-gradient(135deg, #4361ee, #48bfe3);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            white-space: nowrap;
-        }
-        
-        .card {
-            background-color: white;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-            border: none;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
-        }
-        
-        .auth-tabs {
-            display: flex;
-            width: 100%;
-            border-bottom: 1px solid #eee;
-        }
-        
-        .auth-tab {
-            flex: 1;
-            text-align: center;
-            padding: 1.25rem 1rem;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.3s;
-            color: #6c757d;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .auth-tab:before {
-            content: "";
-            position: absolute;
-            width: 100%;
-            height: 3px;
-            bottom: 0;
-            left: 0;
-            background: linear-gradient(135deg, #4361ee, #48bfe3);
-            transform: scaleX(0);
-            transition: transform 0.3s ease;
-        }
-        
-        .auth-tab.active {
-            color: #4361ee;
+            font-size: 1.5rem;
             font-weight: 600;
-        }
-        
-        .auth-tab.active:before {
-            transform: scaleX(1);
+            color: #2b2d42;
+            margin: 0;
         }
         
         .auth-form {
-            padding: 2.5rem;
+            padding: 1.5rem;
         }
         
         .form-group {
-            margin-bottom: 1.75rem;
+            margin-bottom: 1.25rem;
             position: relative;
         }
         
         label {
             display: block;
-            margin-bottom: 0.75rem;
+            margin-bottom: 0.5rem;
             font-weight: 500;
             color: #2b2d42;
-            font-size: 0.95rem;
-            transition: all 0.3s ease;
+            font-size: 0.9rem;
         }
         
+        .form-group i {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 0.9rem;
+            pointer-events: none;
+            height: 1em;
+            margin-top: 12px;
+        }
+
         input, select {
             width: 100%;
-            padding: 0.9rem 1rem;
-            border: 1px solid #dee2e6;
-            border-radius: 10px;
-            font-size: 1rem;
-            background-color: white;
+            padding: 0.75rem 2.5rem 0.75rem 1rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            background-color: #f8fafc;
             color: #2b2d42;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
+            line-height: 1.5;
+            height: 42px;
         }
         
         input:focus, select:focus {
             outline: none;
             border-color: #4361ee;
-            box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.15);
+            background-color: white;
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
         }
-        
-        .form-group i {
-            position: absolute;
-            right: 1rem;
-            top: 2.75rem;
-            color: #6c757d;
-        }
-        
+
         .btn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            padding: 0.9rem 1.5rem;
-            font-size: 1rem;
+            padding: 0.75rem 1.5rem;
+            font-size: 0.95rem;
             font-weight: 500;
             text-align: center;
             border: none;
-            border-radius: 10px;
+            border-radius: 8px;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
             text-decoration: none;
             gap: 0.5rem;
+            width: 100%;
         }
         
         .btn-primary {
-            background: linear-gradient(135deg, #4361ee, #3a56d4);
+            background-color: #4361ee;
             color: white;
-            box-shadow: 0 4px 10px rgba(67, 97, 238, 0.3);
         }
         
         .btn-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 15px rgba(67, 97, 238, 0.4);
+            background-color: #3a56d4;
+            transform: translateY(-1px);
         }
-        
-        .alert {
-            padding: 1rem 1.25rem;
-            margin-bottom: 1.5rem;
-            border-radius: 10px;
-            animation: fadeIn 0.3s ease;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .alert-danger {
-            background-color: rgba(231, 29, 54, 0.1);
-            border-left: 4px solid #e71d36;
-            color: #e71d36;
-        }
-        
-        .form-hint {
-            display: block;
-            margin-top: 0.5rem;
+
+        .notice {
+            text-align: center;
+            margin-top: 1rem;
+            color: #64748b;
             font-size: 0.85rem;
-            color: #6c757d;
-        }
-        
-        @media (max-width: 576px) {
-            .auth-form {
-                padding: 1.5rem;
-            }
-            
-            .auth-logo h1 {
-                font-size: 2rem;
-            }
         }
     </style>
 </head>
 <body>
     <div class="login-container">
         <div class="login-left">
-            <img src="{{ url_for('static', path='/images/file-upload-illustration.svg') }}" alt="文件上传系统" class="login-illustration" onerror="this.style.display='none'">
-            <h2>文件上传管理系统</h2>
-            <p>高效便捷的作业管理平台，连接师生，提升教学体验</p>
+            <img src="{{ url_for('static', path='/img/login-illustration.svg') }}" alt="登录插图" class="login-illustration">
+            <h2>欢迎使用文件上传系统</h2>
+            <p>这是一个安全、高效的文件上传和管理系统，为教师和学生提供便捷的作业提交平台。</p>
         </div>
-        
         <div class="login-right">
-            <div class="auth-logo">
-                <i class="fas fa-cloud-upload-alt"></i>
-                <h1>文件上传系统</h1>
-            </div>
-            
             <div class="card">
-                <div class="auth-tabs">
-                    <div class="auth-tab active" data-target="login-form">登录</div>
-                    <div class="auth-tab" data-target="register-form">注册</div>
+                <div class="auth-logo">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <h1>文件上传系统</h1>
                 </div>
-                
-                {% if error %}
-                <div class="alert alert-danger">
-                    <i class="fas fa-exclamation-circle"></i> {{ error }}
-                </div>
-                {% endif %}
-                
-                <div id="login-form" class="auth-form">
-                    <form action="/login" method="post" class="needs-validation">
+                <div class="auth-form">
+                    <form action="{{ url_for('login_for_access_token') }}" method="post">
                         <div class="form-group">
                             <label for="username">用户名</label>
-                            <input type="text" id="username" name="username" required placeholder="请输入您的用户名">
+                            <input type="text" id="username" name="username" required>
                             <i class="fas fa-user"></i>
                         </div>
-                        
                         <div class="form-group">
                             <label for="password">密码</label>
-                            <input type="password" id="password" name="password" required placeholder="请输入您的密码">
+                            <input type="password" id="password" name="password" required>
                             <i class="fas fa-lock"></i>
                         </div>
-                        
-                        <div class="form-group">
-                            <button type="submit" class="btn btn-primary" style="width: 100%;"><i class="fas fa-sign-in-alt"></i> 登录</button>
+                        {% if error %}
+                        <div class="error-message">
+                            <i class="fas fa-exclamation-circle"></i>
+                            {{ error }}
                         </div>
+                        {% endif %}
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-sign-in-alt"></i>
+                            登录
+                        </button>
                     </form>
-                </div>
-                
-                <div id="register-form" class="auth-form" style="display: none;">
-                    <form action="/register" method="post" class="needs-validation">
-                        <div class="form-group">
-                            <label for="reg-username">用户名</label>
-                            <input type="text" id="reg-username" name="username" required placeholder="请创建您的用户名">
-                            <i class="fas fa-user"></i>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="reg-password">密码</label>
-                            <input type="password" id="reg-password" name="password" required placeholder="请设置您的密码">
-                            <i class="fas fa-lock"></i>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="confirm-password">确认密码</label>
-                            <input type="password" id="confirm-password" name="confirm_password" required placeholder="请再次输入密码">
-                            <i class="fas fa-lock"></i>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="role">注册为</label>
-                            <select id="role" name="role" required>
-                                <option value="">-- 请选择身份 --</option>
-                                <option value="student">学生</option>
-                                <option value="teacher">老师</option>
-                            </select>
-                            <span class="form-hint">* 管理员账号由系统管理员创建</span>
-                        </div>
-                        
-                        <div class="form-group">
-                            <button type="submit" class="btn btn-primary" style="width: 100%;"><i class="fas fa-user-plus"></i> 注册</button>
-                        </div>
-                    </form>
+                    <div class="notice">
+                        <p>注册功能已关闭，请联系管理员或教师创建账号。</p>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-    
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const tabs = document.querySelectorAll('.auth-tab');
-        
-        tabs.forEach(tab => {
-            tab.addEventListener('click', function() {
-                // 移除所有 active 类
-                tabs.forEach(t => t.classList.remove('active'));
-                
-                // 添加当前 active 类
-                this.classList.add('active');
-                
-                // 获取目标表单ID
-                const targetId = this.getAttribute('data-target');
-                
-                // 隐藏所有表单
-                document.querySelectorAll('.auth-form').forEach(form => {
-                    form.style.display = 'none';
-                });
-                
-                // 显示目标表单
-                document.getElementById(targetId).style.display = 'block';
-            });
-        });
-    });
-    </script>
 </body>
 </html> 

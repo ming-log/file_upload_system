@@ -40,8 +40,83 @@
         margin-top: 1rem;
     }
     
+    .mt-4 {
+        margin-top: 1.5rem;
+    }
+    
     .text-right {
         text-align: right;
+    }
+    
+    .progress {
+        display: flex;
+        height: 1rem;
+        overflow: hidden;
+        font-size: 0.75rem;
+        background-color: #e9ecef;
+        border-radius: 0.25rem;
+    }
+    
+    .progress-bar {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        overflow: hidden;
+        color: #fff;
+        text-align: center;
+        white-space: nowrap;
+        background-color: #007bff;
+        transition: width .6s ease;
+    }
+    
+    .bg-success {
+        background-color: #28a745 !important;
+    }
+    
+    .badge {
+        display: inline-block;
+        padding: 0.25em 0.4em;
+        font-size: 75%;
+        font-weight: 700;
+        line-height: 1;
+        text-align: center;
+        white-space: nowrap;
+        vertical-align: baseline;
+        border-radius: 0.25rem;
+    }
+    
+    .badge-primary {
+        color: #fff;
+        background-color: #007bff;
+    }
+    
+    .badge-success {
+        color: #fff;
+        background-color: #28a745;
+    }
+    
+    .badge-warning {
+        color: #212529;
+        background-color: #ffc107;
+    }
+    
+    .badge-danger {
+        color: #fff;
+        background-color: #dc3545;
+    }
+    
+    .alert {
+        position: relative;
+        padding: 0.75rem 1.25rem;
+        margin-bottom: 1rem;
+        border: 1px solid transparent;
+        border-radius: 0.25rem;
+    }
+    
+    .alert-info {
+        color: #0c5460;
+        background-color: #d1ecf1;
+        border-color: #bee5eb;
     }
 </style>
 {% endblock %}
@@ -93,33 +168,43 @@
 
 <h2 class="section-title"><i class="fas fa-user-plus"></i> 最近创建的用户</h2>
 <div class="row">
-    <div class="card">
-        <div class="card-header">
-            <h2 class="card-title"><i class="fas fa-users"></i> 用户列表</h2>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>用户名</th>
-                            <th>角色</th>
-                            <th>创建时间</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for u in recent_users %}
-                        <tr>
-                            <td>{{ u.username }}</td>
-                            <td>{{ u.role }}</td>
-                            <td>{{ u.created_at }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            <div class="text-right mt-3">
-                <a href="{{ url_for('admin_panel') }}" class="btn btn-primary">管理所有用户</a>
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                {% if recent_users %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>用户名</th>
+                                <th>角色</th>
+                                <th>创建时间</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for u in recent_users %}
+                            <tr>
+                                <td>{{ u.username }}</td>
+                                <td>
+                                    {% if u.role == 'admin' %}
+                                        <span class="badge badge-danger">管理员</span>
+                                    {% elif u.role == 'teacher' %}
+                                        <span class="badge badge-primary">教师</span>
+                                    {% else %}
+                                        <span class="badge badge-success">学生</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ u.created_at }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> 暂无用户记录
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -171,66 +256,120 @@
 </div>
 
 <div class="row">
-    <div class="card">
-        <div class="card-header">
-            <h2 class="card-title"><i class="fas fa-chalkboard"></i> 我的班级</h2>
-        </div>
-        <div class="card-body">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>班级名称</th>
-                        <th>学生数量</th>
-                        <th>相关课程</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for class in teacher_classes %}
-                    <tr>
-                        <td>{{ class.name }}</td>
-                        <td>{{ class.students|length }}</td>
-                        <td>{{ class.courses|length }}</td>
-                        <td>
-                            <a href="{{ url_for('view_class', class_id=class.id) }}" class="btn btn-secondary">查看</a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            <div class="text-right mt-3">
-                <a href="{{ url_for('create_class') }}" class="btn btn-primary">创建新班级</a>
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h2 class="card-title"><i class="fas fa-chalkboard"></i> 我的班级</h2>
+                    <a href="{{ url_for('create_class') }}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus"></i> 创建新班级
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if teacher_classes %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>班级名称</th>
+                                <th>学生数量</th>
+                                <th>相关课程</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for class in teacher_classes %}
+                            <tr>
+                                <td>{{ class.name }}</td>
+                                <td>{{ class.students|length }}</td>
+                                <td>{{ class.courses|length }}</td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a href="{{ url_for('view_class', class_id=class.id) }}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-edit"></i> 编辑
+                                        </a>
+                                        <button type="button" onclick="confirmDelete('class', '{{ class.id }}', '{{ class.name }}')" class="btn btn-sm btn-danger">
+                                            <i class="fas fa-trash"></i> 删除
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> 您还没有创建班级，点击上方按钮创建您的第一个班级
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
-    
-    <div class="card">
-        <div class="card-header">
-            <h2 class="card-title"><i class="fas fa-tasks"></i> 最近的作业</h2>
-        </div>
-        <div class="card-body">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>作业名称</th>
-                        <th>班级</th>
-                        <th>截止日期</th>
-                        <th>提交状态</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for assignment in recent_assignments %}
-                    <tr>
-                        <td>{{ assignment.title }}</td>
-                        <td>{{ assignment.class_obj.name }}</td>
-                        <td>{{ assignment.due_date }}</td>
-                        <td>{{ assignment.submissions_count }}/{{ assignment.total_students }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            <div class="text-right mt-3">
-                <a href="{{ url_for('create_assignment') }}" class="btn btn-primary">创建新作业</a>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h2 class="card-title"><i class="fas fa-tasks"></i> 最近的作业</h2>
+                    <a href="{{ url_for('create_assignment') }}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus"></i> 创建新作业
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if recent_assignments %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>作业名称</th>
+                                <th>班级</th>
+                                <th>截止日期</th>
+                                <th>提交状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for assignment in recent_assignments %}
+                            <tr>
+                                <td>{{ assignment.title }}</td>
+                                <td>{{ assignment.class_obj.name }}</td>
+                                <td>{{ assignment.due_date }}</td>
+                                <td>
+                                    <div class="progress" style="height: 20px;">
+                                        {% set percentage = (assignment.submissions_count / assignment.total_students * 100) if assignment.total_students > 0 else 0 %}
+                                        <div class="progress-bar bg-success" role="progressbar" 
+                                            data-percentage="{{ percentage }}"
+                                            data-submissions="{{ assignment.submissions_count }}"
+                                            data-total="{{ assignment.total_students }}">
+                                            {{ assignment.submissions_count }}/{{ assignment.total_students }}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a href="{{ url_for('view_assignment', assignment_id=assignment.id) }}" class="btn btn-sm btn-secondary">
+                                            <i class="fas fa-eye"></i> 查看
+                                        </a>
+                                        <button type="button" onclick="confirmDelete('assignment', '{{ assignment.id }}', '{{ assignment.title }}')" class="btn btn-sm btn-danger">
+                                            <i class="fas fa-trash"></i> 删除
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> 您还没有创建作业，点击上方按钮创建您的第一个作业
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -281,44 +420,85 @@
     </div>
 </div>
 
-<div class="card">
-    <div class="card-header">
-        <h2 class="card-title"><i class="fas fa-tasks"></i> 待完成作业</h2>
-    </div>
-    <div class="card-body">
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>作业名称</th>
-                    <th>课程</th>
-                    <th>发布日期</th>
-                    <th>截止日期</th>
-                    <th>状态</th>
-                    <th>操作</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for assignment in pending_assignments %}
-                <tr>
-                    <td>{{ assignment.title }}</td>
-                    <td>{{ assignment.course.name }}</td>
-                    <td>{{ assignment.created_at }}</td>
-                    <td>{{ assignment.due_date }}</td>
-                    <td>
-                        {% if assignment.status == 'pending' %}
-                        <span class="status-badge status-pending">待完成</span>
-                        {% elif assignment.status == 'submitted' %}
-                        <span class="status-badge status-submitted">已提交</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <a href="{{ url_for('view_assignment', assignment_id=assignment.id) }}" class="btn btn-secondary">查看</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h2 class="card-title"><i class="fas fa-tasks"></i> 待完成作业</h2>
+                    <a href="{{ url_for('my_assignments') }}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-list"></i> 查看所有作业
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if pending_assignments %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>作业名称</th>
+                                <th>课程</th>
+                                <th>发布日期</th>
+                                <th>截止日期</th>
+                                <th>状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for assignment in pending_assignments %}
+                            <tr>
+                                <td>{{ assignment.title }}</td>
+                                <td>{{ assignment.course.name }}</td>
+                                <td>{{ assignment.created_at }}</td>
+                                <td>{{ assignment.due_date }}</td>
+                                <td>
+                                    {% if assignment.status == 'pending' %}
+                                    <span class="badge badge-warning">待完成</span>
+                                    {% elif assignment.status == 'submitted' %}
+                                    <span class="badge badge-success">已提交</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('view_assignment', assignment_id=assignment.id) }}" class="btn btn-sm btn-secondary">
+                                        <i class="fas fa-eye"></i> 查看
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> 当前没有待完成的作业
+                </div>
+                {% endif %}
+            </div>
+        </div>
     </div>
 </div>
 {% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function confirmDelete(type, id, name) {
+        if (confirm('确定要删除' + (type === 'class' ? '班级' : '作业') + ' "' + name + '" 吗？此操作不可恢复！')) {
+            window.location.href = '/delete_' + type + '/' + id;
+        }
+    }
+
+    // 初始化进度条
+    document.addEventListener('DOMContentLoaded', function() {
+        const progressBars = document.querySelectorAll('.progress-bar');
+        progressBars.forEach(function(bar) {
+            const percentage = parseFloat(bar.getAttribute('data-percentage')) || 0;
+            bar.style.width = percentage + '%';
+            bar.setAttribute('aria-valuenow', percentage);
+            bar.setAttribute('aria-valuemin', 0);
+            bar.setAttribute('aria-valuemax', 100);
+        });
+    });
+</script>
 {% endblock %} 

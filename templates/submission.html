@@ -79,6 +79,14 @@
                         {% endfor %}
                     </tbody>
                 </table>
+                
+                {% if files|length > 1 %}
+                <div class="mt-3 text-right">
+                    <a href="{{ url_for('download_submission_files', submission_id=submission.id) }}" class="btn btn-success">
+                        <i class="fas fa-download"></i> 下载全部文件
+                    </a>
+                </div>
+                {% endif %}
             </div>
             {% else %}
             <div class="alert alert-info">

@@ -22,6 +22,8 @@
                         <th>班级</th>
                         <th>课程</th>
                         <th>截止日期</th>
+                        <th>允许的文件类型</th>
+                        <th>文件大小限制</th>
                         <th>完成情况</th>
                         <th>操作</th>
                     </tr>
@@ -34,6 +36,13 @@
                         <td>{{ assignment.course.name }}</td>
                         <td>{{ assignment.due_date.strftime('%Y-%m-%d %H:%M') }}</td>
                         <td>
+                            {% set allowed_types = assignment.allowed_file_types.split(',') if assignment.allowed_file_types else ['.pdf', '.docx'] %}
+                            {% for type in allowed_types %}
+                                <span class="badge badge-info">{{ type }}</span>
+                            {% endfor %}
+                        </td>
+                        <td>{{ assignment.max_file_size if assignment.max_file_size else 5 }} MB</td>
+                        <td>
                             {% if assignment.total_students > 0 %}
                             {{ assignment.submissions_count }}/{{ assignment.total_students }}
                             ({{ (assignment.submissions_count / assignment.total_students * 100)|int }}%)
@@ -42,9 +51,23 @@
                             {% endif %}
                         </td>
                         <td>
-                            <a href="{{ url_for('view_assignment', assignment_id=assignment.id) }}" class="btn btn-sm btn-info">
-                                <i class="fas fa-edit"></i> 查看/编辑
-                            </a>
+                            <div class="btn-group">
+                                <a href="{{ url_for('view_assignment', assignment_id=assignment.id) }}" class="btn btn-sm btn-info">
+                                    <i class="fas fa-edit"></i> 查看/编辑
+                                </a>
+                                {% if assignment.submissions_count > 0 %}
+                                <a href="{{ url_for('download_all_files', assignment_id=assignment.id) }}" class="btn btn-sm btn-success">
+                                    <i class="fas fa-download"></i> 下载
+                                </a>
+                                {% else %}
+                                <button class="btn btn-sm btn-secondary" disabled data-toggle="tooltip" data-placement="top" title="暂无学生提交文件，无法下载">
+                                    <i class="fas fa-download"></i> 下载
+                                </button>
+                                {% endif %}
+                                <button type="button" onclick="confirmDelete('{{ assignment.id }}', '{{ assignment.title }}')" class="btn btn-sm btn-danger">
+                                    <i class="fas fa-trash"></i> 删除
+                                </button>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -58,4 +81,63 @@
         {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .btn-group {
+        display: flex;
+        gap: 5px;
+    }
+    
+    .table td {
+        vertical-align: middle;
+    }
+    
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+    
+    .badge {
+        display: inline-block;
+        margin-right: 2px;
+        padding: 0.35em 0.65em;
+        font-size: 0.75em;
+        font-weight: 700;
+        line-height: 1;
+        color: #fff;
+        text-align: center;
+        white-space: nowrap;
+        vertical-align: baseline;
+        border-radius: 0.25rem;
+    }
+    
+    .badge-info {
+        background-color: #0d6efd;
+    }
+    
+    .badge-success {
+        background-color: #198754;
+    }
+    
+    .badge-warning {
+        background-color: #dc3500;
+        color: #fff;
+    }
+</style>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    $(document).ready(function(){
+        $('[data-toggle="tooltip"]').tooltip();
+    });
+    
+    function confirmDelete(id, title) {
+        if (confirm('确定要删除作业 "' + title + '" 吗？此操作不可恢复！')) {
+            window.location.href = '/delete_assignment/' + id;
+        }
+    }
+</script>
 {% endblock %} 

@@ -63,6 +63,74 @@
                         <input type="datetime-local" id="due_date" name="due_date" class="form-control" value="{{ assignment.due_date.strftime('%Y-%m-%dT%H:%M') if assignment and assignment.due_date else '' }}" required>
                     </div>
                     
+                    <div class="form-group">
+                        <label>允许提交的文件类型</label>
+                        <div class="file-types-container">
+                            {% set allowed_types = assignment.allowed_file_types.split(',') if assignment and assignment.allowed_file_types else ['.pdf', '.docx'] %}
+                            <div class="row">
+                                <div class="col-md-3 col-sm-4 col-6">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="file_type_pdf" name="allowed_file_types" value=".pdf" {% if '.pdf' in allowed_types %}checked{% endif %}>
+                                        <label class="custom-control-label" for="file_type_pdf">PDF (.pdf)</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-4 col-6">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="file_type_docx" name="allowed_file_types" value=".docx" {% if '.docx' in allowed_types %}checked{% endif %}>
+                                        <label class="custom-control-label" for="file_type_docx">Word (.docx)</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-4 col-6">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="file_type_png" name="allowed_file_types" value=".png" {% if '.png' in allowed_types %}checked{% endif %}>
+                                        <label class="custom-control-label" for="file_type_png">PNG图片 (.png)</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-4 col-6">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="file_type_jpg" name="allowed_file_types" value=".jpg" {% if '.jpg' in allowed_types %}checked{% endif %}>
+                                        <label class="custom-control-label" for="file_type_jpg">JPG图片 (.jpg)</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-4 col-6">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="file_type_zip" name="allowed_file_types" value=".zip" {% if '.zip' in allowed_types %}checked{% endif %}>
+                                        <label class="custom-control-label" for="file_type_zip">ZIP压缩包 (.zip)</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-4 col-6">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="file_type_rar" name="allowed_file_types" value=".rar" {% if '.rar' in allowed_types %}checked{% endif %}>
+                                        <label class="custom-control-label" for="file_type_rar">RAR压缩包 (.rar)</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-4 col-6">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="file_type_7z" name="allowed_file_types" value=".7z" {% if '.7z' in allowed_types %}checked{% endif %}>
+                                        <label class="custom-control-label" for="file_type_7z">7Z压缩包 (.7z)</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-4 col-6">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="file_type_ipynb" name="allowed_file_types" value=".ipynb" {% if '.ipynb' in allowed_types %}checked{% endif %}>
+                                        <label class="custom-control-label" for="file_type_ipynb">Jupyter笔记本 (.ipynb)</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="max_file_size">最大文件大小限制 (MB)</label>
+                        <div class="input-group">
+                            <input type="number" id="max_file_size" name="max_file_size" class="form-control" min="1" max="100" value="{{ assignment.max_file_size if assignment else 5 }}" required>
+                            <div class="input-group-append">
+                                <span class="input-group-text">MB</span>
+                            </div>
+                        </div>
+                        <small class="form-text text-muted">设置允许上传的单个文件最大大小，单位为MB，建议不超过100MB</small>
+                    </div>
+                    
                     <div class="form-group mt-4 text-right">
                         <a href="{{ url_for('assignments') }}" class="btn btn-light mr-2">取消</a>
                         <button type="submit" class="btn btn-primary">
@@ -153,7 +221,16 @@
                 </div>
                 
                 <div class="mt-4 text-right">
-                    <!-- 在这里添加其他按钮，如果需要的话 -->
+                    {% if submissions|length > 0 %}
+                    <a href="{{ url_for('download_all_files', assignment_id=assignment.id) }}" class="btn btn-primary">
+                        <i class="fas fa-download"></i> 一键下载所有提交文件
+                    </a>
+                    {% else %}
+                    <button class="btn btn-primary" disabled>
+                        <i class="fas fa-download"></i> 一键下载所有提交文件
+                    </button>
+                    <small class="text-muted d-block mt-2">暂无学生提交文件</small>
+                    {% endif %}
                 </div>
             </div>
         </div>

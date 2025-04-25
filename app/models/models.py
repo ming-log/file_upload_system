@@ -75,6 +75,8 @@ class Assignment(Base):
     course_id = Column(Integer, ForeignKey("courses.id"))
     teacher_id = Column(Integer, ForeignKey("users.id"))
     due_date = Column(DateTime)
+    allowed_file_types = Column(String, default=".pdf,.docx")  # 默认允许pdf和docx格式
+    max_file_size = Column(Integer, default=5)  # 文件大小限制，单位为MB，默认5MB
     created_at = Column(DateTime, default=datetime.datetime.now)
     
     # 关系

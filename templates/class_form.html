@@ -2,6 +2,13 @@
 
 {% block title %}{% if class %}编辑班级{% else %}创建班级{% endif %} - 文件上传系统{% endblock %}
 
+{% block extra_head %}
+<!-- 引入Select2库 - 混合使用CDN和本地文件 -->
+<link rel="stylesheet" href="https://cdn.staticfile.org/select2/4.0.13/css/select2.min.css">
+<script src="{{ url_for('static', path='js/lib/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', path='js/lib/select2.min.js') }}"></script>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
     <h1><i class="fas fa-chalkboard"></i> {% if class %}编辑班级: {{ class.name }}{% else %}创建新班级{% endif %}</h1>
@@ -31,16 +38,12 @@
                     </div>
                     
                     <div class="form-group">
-                        <label>关联课程</label>
-                        <div class="checkbox-group">
+                        <label for="courses">关联课程</label>
+                        <select id="courses" name="courses" class="form-control select2-multiple" multiple="multiple">
                             {% for course in courses %}
-                            <div class="custom-control custom-checkbox">
-                                <input type="checkbox" class="custom-control-input" id="course-{{ course.id }}" name="courses" value="{{ course.id }}" 
-                                    {% if class and course.id in class.course_ids %}checked{% endif %}>
-                                <label class="custom-control-label" for="course-{{ course.id }}">{{ course.name }}</label>
-                            </div>
+                            <option value="{{ course.id }}" {% if class and course in class.courses %}selected{% endif %}>{{ course.name }}</option>
                             {% endfor %}
-                        </div>
+                        </select>
                         {% if not courses %}
                         <p class="form-hint text-muted mt-2">没有可用的课程。请先<a href="{{ url_for('create_course') }}">创建课程</a>.</p>
                         {% endif %}
@@ -74,7 +77,7 @@
                             <i class="fas fa-users"></i> 当前学生
                             <span class="badge badge-primary">{{ class.students|length }}</span>
                         </h3>
-                        <button type="button" class="btn btn-primary" id="showAddStudentBtn">
+                        <button type="button" class="btn btn-primary" id="showAddStudentBtn" onclick="toggleAddStudentSection()">
                             <i class="fas fa-user-plus"></i> 添加学生
                         </button>
                     </div>
@@ -115,67 +118,76 @@
                 
                 <!-- 添加学生区域 (默认隐藏) -->
                 <div id="addStudentSection" class="mb-4" style="display: none;">
-                    <div class="card border-top">
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-12">
-                                    <!-- 添加学生选项按钮 -->
-                                    <div class="add-student-tabs mb-4">
-                                        <div class="btn-group w-100" role="group">
-                                            <button type="button" class="btn btn-primary active" id="single-add-btn" data-target="single-add">
-                                                <i class="fas fa-user-plus"></i> 单个添加
-                                            </button>
-                                            <button type="button" class="btn btn-outline-primary" id="batch-add-btn" data-target="batch-add">
-                                                <i class="fas fa-file-import"></i> 批量导入
+                    <div class="card shadow border-0">
+                        <div class="card-header bg-light">
+                            <h3 class="mb-0"><i class="fas fa-user-plus"></i> 添加学生</h3>
+                        </div>
+                        <div class="card-body p-0">
+                            <!-- 添加学生选项按钮 -->
+                            <ul class="nav nav-tabs" id="addStudentTabs" role="tablist" style="background-color: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                                <li class="nav-item" role="presentation" style="width: 50%;">
+                                    <button class="nav-link active w-100 py-3" id="single-tab" data-target="single-add" type="button" role="tab" onclick="switchAddMethod('single-add')" style="border-radius: 0; font-weight: 600; border: none; background: transparent;">
+                                        <i class="fas fa-user-plus"></i> 单个添加
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation" style="width: 50%;">
+                                    <button class="nav-link w-100 py-3" id="batch-tab" data-target="batch-add" type="button" role="tab" onclick="switchAddMethod('batch-add')" style="border-radius: 0; font-weight: 600; border: none; background: transparent;">
+                                        <i class="fas fa-file-import"></i> 批量导入
+                                    </button>
+                                </li>
+                            </ul>
+                            
+                            <div class="tab-content p-4" id="addStudentTabContent">
+                                <!-- 单个添加表单 -->
+                                <div class="tab-pane fade show active" id="single-add" role="tabpanel">
+                                    <form action="{{ url_for('add_student_to_class', class_id=class.id) }}" method="post">
+                                        <div class="form-group">
+                                            <label for="student_id" class="form-label"><i class="fas fa-user-graduate"></i> 选择学生</label>
+                                            <select id="student_id" name="student_id" class="form-control form-control-lg" required>
+                                                <option value="">-- 请选择学生 --</option>
+                                                {% for student in available_students %}
+                                                <option value="{{ student.id }}">{{ student.username }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="form-group mt-4">
+                                            <button type="submit" class="btn btn-success btn-lg btn-block" style="background-color: #10a19d; border-color: #10a19d;">
+                                                <i class="fas fa-user-plus"></i> 添加学生
                                             </button>
                                         </div>
-                                    </div>
-                                    
-                                    <!-- 单个添加表单 -->
-                                    <div class="add-method active" id="single-add">
-                                        <form action="{{ url_for('add_student_to_class', class_id=class.id) }}" method="post">
-                                            <div class="form-group">
-                                                <label for="student_id">选择学生</label>
-                                                <select id="student_id" name="student_id" class="form-control" required>
-                                                    <option value="">-- 请选择 --</option>
-                                                    {% for student in available_students %}
-                                                    <option value="{{ student.id }}">{{ student.username }}</option>
-                                                    {% endfor %}
-                                                </select>
+                                    </form>
+                                </div>
+                                
+                                <!-- 批量导入表单 -->
+                                <div class="tab-pane fade" id="batch-add" role="tabpanel">
+                                    <form action="{{ url_for('import_students', class_id=class.id) }}" method="post" enctype="multipart/form-data">
+                                        <div class="form-group">
+                                            <label class="form-label"><i class="fas fa-file-csv"></i> 学生名单 (CSV文件)</label>
+                                            <div class="custom-file">
+                                                <input type="file" class="custom-file-input" id="students_file" name="students_file" accept=".csv" required>
+                                                <label class="custom-file-label" for="students_file">选择文件...</label>
                                             </div>
-                                            
-                                            <div class="form-group text-center mb-0">
-                                                <button type="submit" class="btn btn-success">
-                                                    <i class="fas fa-user-plus"></i> 添加学生
-                                                </button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                    
-                                    <!-- 批量导入表单 -->
-                                    <div class="add-method" id="batch-add" style="display: none;">
-                                        <form action="{{ url_for('import_students', class_id=class.id) }}" method="post" enctype="multipart/form-data">
-                                            <div class="form-group">
-                                                <label>学生名单 (CSV文件)</label>
-                                                <div class="custom-file">
-                                                    <input type="file" class="custom-file-input" id="students_file" name="students_file" accept=".csv" required>
-                                                    <label class="custom-file-label" for="students_file">选择文件...</label>
+                                            <small class="form-text text-muted mt-2">
+                                                <i class="fas fa-info-circle"></i> CSV文件格式: 用户名,密码 (确保使用UTF-8编码)
+                                            </small>
+                                        </div>
+                                        
+                                        <div class="form-group mt-4">
+                                            <div class="row">
+                                                <div class="col-md-7 mb-2 mb-md-0">
+                                                    <button type="submit" class="btn btn-success btn-lg btn-block" style="background-color: #10a19d; border-color: #10a19d;">
+                                                        <i class="fas fa-file-import"></i> 导入学生
+                                                    </button>
                                                 </div>
-                                                <small class="form-text text-muted mt-2">
-                                                    <i class="fas fa-info-circle"></i> CSV文件格式: 用户名,密码 (确保使用UTF-8编码)
-                                                </small>
+                                                <div class="col-md-5">
+                                                    <a href="{{ url_for('download_student_template') }}" class="btn btn-outline-secondary btn-lg btn-block">
+                                                        <i class="fas fa-download"></i> 下载模板
+                                                    </a>
+                                                </div>
                                             </div>
-                                            
-                                            <div class="form-group text-center mb-0">
-                                                <button type="submit" class="btn btn-success">
-                                                    <i class="fas fa-file-import"></i> 导入学生
-                                                </button>
-                                                <a href="{{ url_for('download_student_template') }}" class="btn btn-outline-secondary ml-2">
-                                                    <i class="fas fa-download"></i> 下载模板
-                                                </a>
-                                            </div>
-                                        </form>
-                                    </div>
+                                        </div>
+                                    </form>
                                 </div>
                             </div>
                         </div>
@@ -292,66 +304,267 @@
         font-size: 0.9rem;
     }
 }
-</style>
-{% endblock %}
 
-{% block extra_scripts %}
+/* Select2自定义样式 */
+.select2-container--default .select2-selection--multiple {
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    min-height: 38px;
+}
+
+.select2-container--default.select2-container--focus .select2-selection--multiple {
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.select2-container--default .select2-selection--multiple .select2-selection__choice {
+    background-color: #4361ee;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    padding: 2px 8px;
+    margin: 3px 5px 3px 0;
+}
+
+.select2-container--default .select2-selection__choice__remove {
+    color: white;
+    margin-right: 5px;
+}
+
+.select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
+    color: #f8f9fa;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: #4361ee;
+}
+
+/* 添加学生区域样式 */
+.add-method {
+    background-color: #f9f9f9;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.add-method h3 {
+    color: #495057;
+    font-weight: 600;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.add-student-tabs {
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border-radius: 0.25rem;
+}
+
+.add-student-tabs .btn {
+    font-weight: 500;
+    padding: 0.75rem 1rem;
+}
+
+.add-student-tabs .btn i {
+    margin-right: 0.5rem;
+}
+
+.btn-success {
+    background-color: #10a19d;
+    border-color: #10a19d;
+}
+
+.btn-success:hover {
+    background-color: #0c8683;
+    border-color: #0c8683;
+}
+
+.custom-file {
+    margin-bottom: 0.75rem;
+}
+
+.form-text.text-muted {
+    font-size: 0.85rem;
+}
+
+/* Bootstrap兼容的标签页样式 */
+.nav-tabs {
+    display: flex;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.nav-tabs .nav-item {
+    margin-bottom: -1px;
+}
+
+.nav-tabs .nav-link {
+    display: block;
+    padding: 0.75rem 1rem;
+    text-decoration: none;
+    color: #495057;
+    border: 1px solid transparent;
+    border-top-left-radius: 0.25rem;
+    border-top-right-radius: 0.25rem;
+    transition: color 0.15s ease-in-out, border-color 0.15s ease-in-out;
+    font-weight: 500;
+    text-align: center;
+}
+
+.nav-tabs .nav-link:hover {
+    color: #4361ee;
+    border-color: #e9ecef #e9ecef #dee2e6;
+}
+
+.nav-tabs .nav-link.active {
+    color: #4361ee;
+    background-color: #fff;
+    border-color: #dee2e6 #dee2e6 #fff;
+    position: relative;
+}
+
+.nav-tabs .nav-link.active:after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background-color: #4361ee;
+}
+
+.nav-tabs .nav-link i {
+    margin-right: 0.5rem;
+}
+
+.tab-content {
+    padding: 1.5rem;
+}
+
+.tab-content > .tab-pane {
+    display: none;
+}
+
+.tab-content > .active {
+    display: block;
+}
+
+.fade {
+    transition: opacity 0.15s linear;
+}
+
+.fade:not(.show) {
+    opacity: 0;
+    display: none;
+}
+
+/* 表单控件增强 */
+.form-control-lg {
+    height: calc(1.5em + 1rem + 2px);
+    padding: 0.5rem 1rem;
+    font-size: 1.1rem;
+    border-radius: 0.3rem;
+}
+
+/* 自定义文件上传样式 */
+.custom-file {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+    height: calc(1.5em + 0.75rem + 2px);
+}
+
+/* 按钮增强样式 */
+.btn-block {
+    display: block;
+    width: 100%;
+}
+
+.btn-lg {
+    padding: 0.5rem 1.2rem;
+    font-size: 1.1rem;
+    line-height: 1.5;
+    border-radius: 0.3rem;
+}
+</style>
+
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // 文件上传输入框名称显示
-        const fileInput = document.getElementById('students_file');
-        if (fileInput) {
-            fileInput.addEventListener('change', function() {
-                const fileName = this.files[0]?.name || '选择文件...';
-                this.nextElementSibling.innerText = fileName;
-            });
-        }
-        
-        // 添加学生区域显示/隐藏
-        const showAddStudentBtn = document.getElementById('showAddStudentBtn');
-        const addStudentSection = document.getElementById('addStudentSection');
-        
-        if (showAddStudentBtn && addStudentSection) {
-            showAddStudentBtn.addEventListener('click', function() {
-                if (addStudentSection.style.display === 'none') {
-                    addStudentSection.style.display = 'block';
-                    showAddStudentBtn.innerHTML = '<i class="fas fa-times"></i> 取消添加';
-                    showAddStudentBtn.classList.replace('btn-primary', 'btn-secondary');
-                } else {
-                    addStudentSection.style.display = 'none';
-                    showAddStudentBtn.innerHTML = '<i class="fas fa-user-plus"></i> 添加学生';
-                    showAddStudentBtn.classList.replace('btn-secondary', 'btn-primary');
-                }
-            });
-        }
-        
-        // 单个添加和批量导入切换
-        const addMethodBtns = document.querySelectorAll('[data-target]');
-        const addMethods = document.querySelectorAll('.add-method');
-        
-        addMethodBtns.forEach(btn => {
-            btn.addEventListener('click', function() {
-                const targetId = this.getAttribute('data-target');
-                
-                // 更新按钮状态
-                addMethodBtns.forEach(b => {
-                    b.classList.remove('active');
-                    if (b.classList.contains('btn-primary')) {
-                        b.classList.replace('btn-primary', 'btn-outline-primary');
-                    }
-                });
-                
-                this.classList.add('active');
-                this.classList.replace('btn-outline-primary', 'btn-primary');
-                
-                // 更新表单显示
-                addMethods.forEach(method => {
-                    method.style.display = 'none';
-                });
-                
-                document.getElementById(targetId).style.display = 'block';
-            });
-        });
+// 定义直接在全局作用域的函数，确保能被内联事件调用
+function toggleAddStudentSection() {
+    console.log('toggleAddStudentSection 函数被调用');
+    var section = document.getElementById('addStudentSection');
+    if (section.style.display === 'none' || section.style.display === '') {
+        section.style.display = 'block';
+    } else {
+        section.style.display = 'none';
+    }
+}
+
+// 定义标签切换函数
+function switchAddMethod(targetId) {
+    // 激活标签页
+    var tabs = document.querySelectorAll('.nav-tabs .nav-link');
+    tabs.forEach(function(tab) {
+        tab.classList.remove('active');
     });
+    
+    // 找到点击的标签并激活
+    var clickedTab = document.querySelector('[data-target="' + targetId + '"]');
+    if (clickedTab) {
+        clickedTab.classList.add('active');
+    }
+    
+    // 激活对应的内容面板
+    var tabPanes = document.querySelectorAll('.tab-pane');
+    tabPanes.forEach(function(pane) {
+        pane.classList.remove('show', 'active');
+        pane.classList.add('fade');
+    });
+    
+    var activePane = document.getElementById(targetId);
+    if (activePane) {
+        activePane.classList.add('show', 'active');
+    }
+}
+
+$(document).ready(function() {
+    // 使用Select2增强下拉框体验
+    $('#courses').select2({
+        placeholder: "请选择关联课程",
+        allowClear: true,
+        width: '100%',
+        language: {
+            noResults: function() {
+                return "没有找到匹配的课程";
+            }
+        }
+    });
+    
+    // 添加学生按钮点击事件
+    $('#showAddStudentBtn').click(function() {
+        toggleAddStudentSection();
+    });
+    
+    // 为学生选择框添加Select2增强
+    $('#student_id').select2({
+        placeholder: "选择要添加的学生",
+        allowClear: true,
+        width: '100%'
+    });
+    
+    // 文件上传显示文件名
+    $('.custom-file-input').on('change', function() {
+        var fileName = $(this).val().split('\\').pop();
+        $(this).next('.custom-file-label').html(fileName);
+    });
+    
+    // 添加导航标签点击事件
+    $('.nav-tabs .nav-link').on('click', function() {
+        var targetId = $(this).data('target');
+        switchAddMethod(targetId);
+    });
+});
 </script>
 {% endblock %} 

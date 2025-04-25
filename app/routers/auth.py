@@ -54,37 +54,38 @@ async def login_for_access_token(
     )
     return response
 
-@router.post("/register", response_model=Any)
-def register(
-    request: Request,
-    username: str = Form(...),
-    password: str = Form(...),
-    role: str = Form(...),
-    db: Session = Depends(get_db)
-):
-    # 检查用户名是否已存在
-    db_user = db.query(User).filter(User.username == username).first()
-    if db_user:
-        return templates.TemplateResponse(
-            "login.html",
-            {"request": request, "error": "用户名已存在"},
-            status_code=400
-        )
-    
-    # 创建新用户
-    hashed_password = get_password_hash(password)
-    db_user = User(
-        username=username,
-        hashed_password=hashed_password,
-        role=role
-    )
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    
-    # 注册成功后重定向到登录页
-    response = RedirectResponse(url="/login", status_code=303)
-    return response
+# 注册功能暂时关闭，只允许管理员和教师导入学生
+# @router.post("/register", response_model=Any)
+# def register(
+#     request: Request,
+#     username: str = Form(...),
+#     password: str = Form(...),
+#     role: str = Form(...),
+#     db: Session = Depends(get_db)
+# ):
+#     # 检查用户名是否已存在
+#     db_user = db.query(User).filter(User.username == username).first()
+#     if db_user:
+#         return templates.TemplateResponse(
+#             "login.html",
+#             {"request": request, "error": "用户名已存在"},
+#             status_code=400
+#         )
+#     
+#     # 创建新用户
+#     hashed_password = get_password_hash(password)
+#     db_user = User(
+#         username=username,
+#         hashed_password=hashed_password,
+#         role=role
+#     )
+#     db.add(db_user)
+#     db.commit()
+#     db.refresh(db_user)
+#     
+#     # 注册成功后重定向到登录页
+#     response = RedirectResponse(url="/login", status_code=303)
+#     return response
 
 @router.get("/logout", name="logout")
 def logout(response: Response):

@@ -1,0 +1,95 @@
+{% extends "layout.html" %}
+
+{% block title %}错误 - {{ status_code }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    .error-container {
+        background: linear-gradient(to right bottom, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7));
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+        padding: 3rem;
+        text-align: center;
+        box-shadow: var(--shadow-md);
+        max-width: 800px;
+        margin: 2rem auto;
+    }
+    
+    .error-icon {
+        font-size: 5rem;
+        color: #e71d36;
+        margin-bottom: 1.5rem;
+        filter: drop-shadow(0 5px 10px rgba(231, 29, 54, 0.3));
+    }
+    
+    .error-code {
+        font-size: 3rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        color: var(--text-color);
+    }
+    
+    .error-message {
+        font-size: 1.5rem;
+        margin-bottom: 2rem;
+        color: var(--text-color);
+        line-height: 1.6;
+    }
+    
+    .error-details {
+        background: rgba(248, 249, 250, 0.8);
+        padding: 1.5rem;
+        border-radius: 10px;
+        margin-bottom: 2rem;
+        border-left: 4px solid #e71d36;
+        text-align: left;
+        max-height: 200px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+    
+    .back-button {
+        display: inline-flex;
+        align-items: center;
+        background: var(--gradient-blue);
+        color: white;
+        padding: 0.8rem 2rem;
+        border-radius: 50px;
+        font-weight: 600;
+        font-size: 1.1rem;
+        text-decoration: none;
+        box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
+        transition: all 0.3s ease;
+    }
+    
+    .back-button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(67, 97, 238, 0.4);
+    }
+    
+    .back-button i {
+        margin-right: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="error-container">
+    <div class="error-icon">
+        <i class="fas fa-exclamation-triangle"></i>
+    </div>
+    <div class="error-code">{{ status_code }}</div>
+    <div class="error-message">{{ message }}</div>
+    
+    {% if detail %}
+    <div class="error-details">
+        {{ detail }}
+    </div>
+    {% endif %}
+    
+    <a href="{{ back_url }}" class="back-button">
+        <i class="fas fa-arrow-left"></i> 返回
+    </a>
+</div>
+{% endblock %} 

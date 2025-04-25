@@ -40,7 +40,8 @@ file_upload_system/
 1. 安装依赖：
 
 ```bash
-pip install -r requirements.txt
+uv venv
+uv sync
 ```
 
 2. 启动应用：
