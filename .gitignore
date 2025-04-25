@@ -8,3 +8,4 @@ wheels/
 
 # Virtual environments
 .venv
+file_upload_system.db
