@@ -13,7 +13,7 @@ from app.database import get_db
 from app.models import User
 
 # 密钥和加密算法配置
-SECRET_KEY = "your-secret-key-here"  # 生产环境中应使用环境变量存储
+SECRET_KEY = "c9eb501bead94f349608af6d3a7e2733a83fc02f7d9342b3bba61c793e66a26c"  # 更安全的密钥
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30 * 24 * 60  # 30 天
 
@@ -26,11 +26,25 @@ def get_password_hash(password):
 
 def verify_password(plain_password, hashed_password):
     """验证密码"""
-    if isinstance(plain_password, str):
-        plain_password = plain_password.encode('utf-8')
-    if isinstance(hashed_password, str):
-        hashed_password = hashed_password.encode('utf-8')
-    return bcrypt.checkpw(plain_password, hashed_password)
+    try:
+        if isinstance(plain_password, str):
+            plain_password = plain_password.encode('utf-8')
+        if isinstance(hashed_password, str):
+            hashed_password = hashed_password.encode('utf-8')
+        
+        print(f"验证密码: 明文密码长度={len(plain_password)}, 哈希密码长度={len(hashed_password)}")
+        
+        # 检查哈希是否是有效的bcrypt格式
+        if not hashed_password.startswith(b'$2'):
+            print("哈希密码格式无效，不是bcrypt格式")
+            return False
+            
+        result = bcrypt.checkpw(plain_password, hashed_password)
+        print(f"密码验证结果: {result}")
+        return result
+    except Exception as e:
+        print(f"密码验证错误: {e}")
+        return False
 
 # 为向后兼容保留CryptContext
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -83,6 +97,9 @@ async def get_token_from_request(request: Request):
         if auth_header and auth_header.startswith("Bearer "):
             token = auth_header[7:]
     
+    # 调试日志
+    print(f"获取到的Token: {token}")
+    
     return token
 
 async def get_current_user(request: Request, db: Session = Depends(get_db)):
@@ -96,20 +113,30 @@ async def get_current_user(request: Request, db: Session = Depends(get_db)):
     token = await get_token_from_request(request)
     
     if not token:
+        print("未找到token")
         raise credentials_exception
     
     try:
+        # 调试解码过程
+        print(f"尝试解码Token: {token[:10]}...")
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
+        print(f"解码Token成功, username: {username}")
+        
         if username is None:
+            print("Token中没有username")
             raise credentials_exception
-    except JWTError:
+    except JWTError as e:
+        print(f"解码Token失败: {str(e)}")
         raise credentials_exception
     
+    # 查找用户
     user = db.query(User).filter(User.username == username).first()
     if user is None:
+        print(f"数据库中未找到用户: {username}")
         raise credentials_exception
-        
+    
+    print(f"认证成功: {username}, 角色: {user.role}")
     return user
 
 # 完全重写这个函数以避免Request依赖注入问题

@@ -283,6 +283,7 @@
                         <th>ID</th>
                         <th>用户名</th>
                         <th>角色</th>
+                        <th>状态</th>
                         <th>单位</th>
                         <th>学号/工号</th>
                         <th>联系方式</th>
@@ -302,6 +303,13 @@
                             <span class="badge badge-success">老师</span>
                             {% elif user.role == 'student' %}
                             <span class="badge badge-warning">学生</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if user.first_login == 1 %}
+                            <span class="badge bg-danger">未修改默认密码</span>
+                            {% else %}
+                            <span class="badge bg-success">已修改密码</span>
                             {% endif %}
                         </td>
                         <td>{{ user.organization or '-' }}</td>

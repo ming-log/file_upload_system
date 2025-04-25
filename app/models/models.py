@@ -35,6 +35,7 @@ class User(Base):
     id_number = Column(String, nullable=True)  # 学号/工号
     phone = Column(String, nullable=True)  # 手机号
     email = Column(String, nullable=True)  # 邮箱
+    first_login = Column(Integer, default=1)  # 1表示首次登录，需要修改密码，0表示非首次登录
     
     # 关系
     classes = relationship("Class", secondary=class_student_association, back_populates="students")

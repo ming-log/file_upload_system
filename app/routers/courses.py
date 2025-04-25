@@ -2,16 +2,15 @@ from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import User, Course, Class, Assignment, Submission, File
 from app.schemas import Course as CourseSchema, CourseCreate, CourseUpdate
 from app.auth import get_current_user, teacher_required
+from app.templates import templates
 
 router = APIRouter()
-templates = Jinja2Templates(directory="templates")
 
 @router.get("/courses", response_class=HTMLResponse, name="courses")
 async def list_courses(

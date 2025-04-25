@@ -122,6 +122,13 @@
 {% endblock %}
 
 {% block content %}
+{% if password_changed %}
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    <i class="fas fa-check-circle"></i> 密码修改成功！您的个人信息已更新。
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
+
 <!-- 管理员仪表盘 -->
 {% if user.role == 'admin' %}
 <div class="dashboard-stats">

@@ -3,7 +3,6 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -15,6 +14,7 @@ from app.database import engine, get_db, Base
 from app.models import User
 from app.routers import auth, users, classes, courses, assignments, dashboard
 from app.auth import get_current_user
+from app.templates import templates
 
 # 创建数据库表
 Base.metadata.create_all(bind=engine)
@@ -28,29 +28,42 @@ async def lifespan(app: FastAPI):
     # 在应用启动时执行的代码
     db = next(get_db())
     try:
+        print("检查和创建管理员账户...")
         # 检查是否已存在admin用户名
         admin = db.query(User).filter(User.username == "admin").first()
         if not admin:
             from app.auth import get_password_hash
-            # 检查是否已有其他管理员
-            any_admin = db.query(User).filter(User.role == "admin").first()
-            if not any_admin:
-                # 创建默认管理员账号
-                admin_user = User(
-                    username="admin",
-                    hashed_password=get_password_hash("admin123"),
-                    role="admin"
-                )
-                db.add(admin_user)
-                db.commit()
-                print("已创建默认管理员账号，用户名: admin，密码: admin123")
-            else:
-                print("已存在管理员账号，跳过创建默认管理员")
+            # 创建默认管理员账号
+            admin_password = "admin123"
+            hashed_password = get_password_hash(admin_password)
+            print(f"创建管理员账户，密码哈希: {hashed_password[:20]}...")
+            
+            admin_user = User(
+                username="admin",
+                hashed_password=hashed_password,
+                role="admin",
+                first_login=0  # 设置为非首次登录，避免密码修改循环
+            )
+            db.add(admin_user)
+            db.commit()
+            print("已创建默认管理员账号，用户名: admin，密码: admin123")
         else:
-            print("admin用户名已存在，跳过创建默认管理员")
+            # 始终重设管理员密码以确保可以登录
+            from app.auth import get_password_hash, verify_password
+            admin_password = "admin123"
+            
+            # 生成新密码
+            new_hashed_password = get_password_hash(admin_password)
+            print(f"更新管理员密码: {new_hashed_password[:20]}...")
+            
+            # 更新管理员信息
+            admin.hashed_password = new_hashed_password
+            admin.first_login = 0  # 设置为非首次登录
+            db.commit()
+            print("已更新管理员密码: admin123")
     except Exception as e:
         db.rollback()
-        print(f"创建管理员账号时出错: {str(e)}")
+        print(f"创建/更新管理员账号时出错: {str(e)}")
     
     yield  # 这里是应用运行的地方
     
@@ -70,18 +83,6 @@ app.add_middleware(
 
 # 挂载静态文件目录
 app.mount("/static", StaticFiles(directory="static"), name="static")
-
-# Jinja2模板
-templates = Jinja2Templates(directory="templates")
-
-# 添加自定义过滤器
-def datetime_format(value):
-    """将datetime格式化为年月日时分秒格式，不显示毫秒"""
-    if isinstance(value, datetime):
-        return value.strftime('%Y-%m-%d %H:%M:%S')
-    return value
-
-templates.env.filters["datetime_format"] = datetime_format
 
 # 全局异常处理
 @app.exception_handler(StarletteHTTPException)
@@ -209,34 +210,46 @@ app.include_router(dashboard.router, tags=["仪表盘"])
 async def root(request: Request):
     # 检查用户是否已登录
     # 在cookie中查找access_token
-    token = request.cookies.get("access_token")
-    if token:
-        try:
-            if token.startswith("Bearer "):
-                token = token[7:]  # 去掉"Bearer "前缀
-            
-            # 直接验证令牌
-            from jose import jwt
-            from app.auth import SECRET_KEY, ALGORITHM
-            from app.database import get_db
-            
-            # 解码令牌并验证
-            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-            username = payload.get("sub")
-            
-            if username:
-                # 在数据库中查找用户
-                db = next(get_db())
-                from app.models import User
-                user = db.query(User).filter(User.username == username).first()
+    try:
+        token = request.cookies.get("access_token")
+        print(f"首页获取到cookie: {token and token[:15]}...")
+        
+        if token:
+            try:
+                if token.startswith("Bearer "):
+                    token = token[7:]  # 去掉"Bearer "前缀
                 
-                if user:
-                    # 用户已登录，重定向到仪表盘
-                    return RedirectResponse(url="/dashboard")
-        except:
-            # 令牌无效，继续重定向到登录页面
-            pass
+                # 直接验证令牌
+                from jose import jwt
+                from app.auth import SECRET_KEY, ALGORITHM
+                from app.database import get_db
+                
+                # 解码令牌并验证
+                print(f"首页尝试验证令牌: {token[:10]}...")
+                payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+                username = payload.get("sub")
+                
+                print(f"首页验证令牌成功，用户: {username}")
+                
+                if username:
+                    # 在数据库中查找用户
+                    db = next(get_db())
+                    from app.models import User
+                    user = db.query(User).filter(User.username == username).first()
+                    
+                    if user:
+                        print(f"首页找到用户: {username}, 重定向到仪表盘")
+                        # 用户已登录，重定向到仪表盘
+                        return RedirectResponse(url="/dashboard")
+                    else:
+                        print(f"首页未在数据库中找到用户: {username}")
+            except Exception as e:
+                # 令牌无效，继续重定向到登录页面
+                print(f"首页令牌验证失败: {str(e)}")
+    except Exception as e:
+        print(f"首页处理时发生未知错误: {str(e)}")
     
+    print("用户未登录，重定向到登录页面")
     # 用户未登录，重定向到登录页面
     return RedirectResponse(url="/login")
 

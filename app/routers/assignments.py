@@ -7,16 +7,15 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Form, UploadFile, File as FastAPIFile
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse, StreamingResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import User, Assignment, Class, Course, Submission, File as FileModel
 from app.schemas import Assignment as AssignmentSchema, AssignmentCreate
 from app.auth import get_current_user, teacher_required
+from app.templates import templates
 
 router = APIRouter()
-templates = Jinja2Templates(directory="templates")
 
 # 设置上传文件保存的目录
 UPLOAD_DIR = os.path.join(os.getcwd(), "app", "uploads")

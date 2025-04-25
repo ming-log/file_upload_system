@@ -234,7 +234,7 @@
                     <h1>文件上传系统</h1>
                 </div>
                 <div class="auth-form">
-                    <form action="{{ url_for('login_for_access_token') }}" method="post">
+                    <form action="/login" method="post">
                         <div class="form-group">
                             <label for="username">用户名</label>
                             <input type="text" id="username" name="username" required>
@@ -258,6 +258,7 @@
                     </form>
                     <div class="notice">
                         <p>注册功能已关闭，请联系管理员或教师创建账号。</p>
+                        <p>默认管理员：admin/admin123</p>
                     </div>
                 </div>
             </div>

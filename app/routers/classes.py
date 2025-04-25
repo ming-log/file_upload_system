@@ -4,16 +4,15 @@ import io
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Form, UploadFile, File as FastAPIFile
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import User, Class, Course, Assignment, Submission, File
 from app.schemas import Class as ClassSchema, ClassCreate, ClassUpdate
 from app.auth import get_current_user, get_password_hash, teacher_required, get_token_from_request
+from app.templates import templates
 
 router = APIRouter()
-templates = Jinja2Templates(directory="templates")
 
 @router.get("/classes", response_class=HTMLResponse, name="classes")
 async def list_classes(

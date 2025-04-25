@@ -2,7 +2,6 @@ from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Form, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 import os, shutil
 from pathlib import Path
@@ -11,9 +10,9 @@ from app.database import get_db
 from app.models import User
 from app.schemas import User as UserSchema, UserCreate, UserUpdate
 from app.auth import get_current_user, get_password_hash, admin_required, verify_password
+from app.templates import templates
 
 router = APIRouter()
-templates = Jinja2Templates(directory="templates")
 
 @router.get("/users", response_class=HTMLResponse, name="admin_panel")
 async def admin_panel(
@@ -108,7 +107,7 @@ async def create_user_page(
 @router.post("/users/create", name="create_user")
 async def create_user(
     username: str = Form(...),
-    password: str = Form(...),
+    password: str = Form(None),  # 密码变为可选参数
     role: str = Form(...),
     current_user: User = Depends(admin_required),
     db: Session = Depends(get_db)
@@ -118,12 +117,17 @@ async def create_user(
     if db_user:
         raise HTTPException(status_code=400, detail="用户名已存在")
     
+    # 如果没有提供密码，则使用默认密码 "123456"
+    if not password:
+        password = "123456"
+    
     # 创建新用户
     hashed_password = get_password_hash(password)
     db_user = User(
         username=username,
         hashed_password=hashed_password,
-        role=role
+        role=role,
+        first_login=1  # 设置首次登录标志
     )
     db.add(db_user)
     db.commit()
@@ -185,6 +189,11 @@ async def update_user(
     # 如果提供了新密码，则更新密码
     if password:
         user.hashed_password = get_password_hash(password)
+        # 如果密码是123456，设置首次登录标志
+        if password == "123456":
+            user.first_login = 1
+        else:
+            user.first_login = 0
     
     # 设置角色（对于非admin账户）
     if user.username != "admin":
