@@ -15,17 +15,85 @@ from app.auth import get_current_user, get_password_hash, admin_required, verify
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
 
-@router.get("/admin/users", response_class=HTMLResponse, name="admin_panel")
+@router.get("/users", response_class=HTMLResponse, name="admin_panel")
 async def admin_panel(
     request: Request,
+    page: int = 1,
+    per_page: int = 10,
+    search: str = None,
+    role_filter: str = None,
     current_user: User = Depends(admin_required),
     db: Session = Depends(get_db)
 ):
-    users = db.query(User).all()
+    # 构建基本查询
+    query = db.query(User)
+    
+    # 应用搜索过滤
+    if search:
+        query = query.filter(User.username.ilike(f"%{search}%"))
+    
+    # 应用角色过滤
+    if role_filter and role_filter != "all":
+        query = query.filter(User.role == role_filter)
+    
+    # 计算总用户数和总页数
+    total = query.count()
+    total_pages = (total + per_page - 1) // per_page  # 向上取整
+    
+    # 获取指定页的用户
+    users = query.order_by(User.id).offset((page - 1) * per_page).limit(per_page).all()
+    
+    # 创建分页对象
+    pagination = {
+        "page": page,
+        "per_page": per_page,
+        "total": total,
+        "total_pages": total_pages,
+        "has_prev": page > 1,
+        "has_next": page < total_pages,
+        "prev_num": page - 1 if page > 1 else None,
+        "next_num": page + 1 if page < total_pages else None,
+        "iter_pages": lambda left_edge=2, right_edge=2, left_current=2, right_current=2: _iter_pages(
+            page, total_pages, left_edge, right_edge, left_current, right_current
+        )
+    }
+    
+    # 计算用户统计数据
+    admin_count = db.query(User).filter(User.role == "admin").count()
+    teacher_count = db.query(User).filter(User.role == "teacher").count()
+    student_count = db.query(User).filter(User.role == "student").count()
+    
+    stats = {
+        "total_users": total,
+        "admin_count": admin_count,
+        "teacher_count": teacher_count, 
+        "student_count": student_count
+    }
+    
     return templates.TemplateResponse(
         "admin_panel.html",
-        {"request": request, "user": current_user, "users": users}
+        {
+            "request": request, 
+            "user": current_user, 
+            "users": users,
+            "pagination": pagination,
+            "search": search,
+            "role_filter": role_filter or "all", 
+            "stats": stats
+        }
     )
+
+def _iter_pages(page, total_pages, left_edge=2, right_edge=2, left_current=2, right_current=2):
+    """辅助函数，用于生成分页序列"""
+    last = 0
+    for num in range(1, total_pages + 1):
+        if num <= left_edge or \
+           (num > page - left_current - 1 and num < page + right_current) or \
+           num > total_pages - right_edge:
+            if last + 1 != num:
+                yield None
+            yield num
+            last = num
 
 @router.get("/users/create", response_class=HTMLResponse, name="create_user_page")
 async def create_user_page(

@@ -28,7 +28,7 @@
                 <span class="badge badge-warning">学生</span>
                 {% endif %}
             </p>
-            <p><strong>创建时间:</strong> {{ delete_user.created_at }}</p>
+            <p><strong>创建时间:</strong> {{ delete_user.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
         </div>
         
         <form action="{{ url_for('delete_user_confirm', user_id=delete_user.id) }}" method="post">

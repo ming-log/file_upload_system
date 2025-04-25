@@ -18,19 +18,71 @@ templates = Jinja2Templates(directory="templates")
 @router.get("/classes", response_class=HTMLResponse, name="classes")
 async def list_classes(
     request: Request,
+    page: int = 1,
+    per_page: int = 8,
     current_user: User = Depends(teacher_required),
     db: Session = Depends(get_db)
 ):
-    # 管理员可以查看所有班级，教师只能查看自己创建的班级
+    # 构建基础查询
     if current_user.role == "admin":
-        classes = db.query(Class).all()
+        base_query = db.query(Class)
     else:
-        classes = db.query(Class).filter(Class.teacher_id == current_user.id).all()
+        base_query = db.query(Class).filter(Class.teacher_id == current_user.id)
+    
+    # 计算总数和总页数
+    total = base_query.count()
+    total_pages = (total + per_page - 1) // per_page  # 向上取整
+    
+    # 分页查询
+    classes = base_query.order_by(Class.id).offset((page - 1) * per_page).limit(per_page).all()
+    
+    # 创建分页对象
+    pagination = {
+        "page": page,
+        "per_page": per_page,
+        "total": total,
+        "total_pages": total_pages,
+        "has_prev": page > 1,
+        "has_next": page < total_pages,
+        "prev_num": page - 1 if page > 1 else None,
+        "next_num": page + 1 if page < total_pages else None,
+        "iter_pages": lambda left_edge=2, right_edge=2, left_current=2, right_current=2: _iter_pages(
+            page, total_pages, left_edge, right_edge, left_current, right_current
+        )
+    }
+    
+    # 构建总统计数据
+    # 获取所有班级以计算总学生数和总课程数（仅用于统计面板）
+    all_classes = base_query.all() if total <= 50 else []  # 只在班级数量合理时进行统计
+    
+    stats = {
+        "total_classes": total,
+        "total_students": sum(len(cls.students) for cls in all_classes) if all_classes else None,
+        "total_courses": sum(len(cls.courses) for cls in all_classes) if all_classes else None,
+    }
     
     return templates.TemplateResponse(
         "classes.html",
-        {"request": request, "user": current_user, "classes": classes}
+        {
+            "request": request, 
+            "user": current_user, 
+            "classes": classes,
+            "pagination": pagination,
+            "stats": stats
+        }
     )
+
+def _iter_pages(page, total_pages, left_edge=2, right_edge=2, left_current=2, right_current=2):
+    """辅助函数，用于生成分页序列"""
+    last = 0
+    for num in range(1, total_pages + 1):
+        if num <= left_edge or \
+           (num > page - left_current - 1 and num < page + right_current) or \
+           num > total_pages - right_edge:
+            if last + 1 != num:
+                yield None
+            yield num
+            last = num
 
 @router.get("/classes/create", response_class=HTMLResponse, name="create_class")
 async def create_class_page(

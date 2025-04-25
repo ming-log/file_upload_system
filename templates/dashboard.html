@@ -194,7 +194,7 @@
                                         <span class="badge badge-success">学生</span>
                                     {% endif %}
                                 </td>
-                                <td>{{ u.created_at }}</td>
+                                <td>{{ u.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -338,7 +338,7 @@
                             <tr>
                                 <td>{{ assignment.title }}</td>
                                 <td>{{ assignment.class_obj.name }}</td>
-                                <td>{{ assignment.due_date }}</td>
+                                <td>{{ assignment.due_date.strftime('%Y-%m-%d %H:%M:%S') }}</td>
                                 <td>
                                     <div class="progress" style="height: 20px;">
                                         {% set percentage = (assignment.submissions_count / assignment.total_students * 100) if assignment.total_students > 0 else 0 %}
@@ -450,8 +450,8 @@
                             <tr>
                                 <td>{{ assignment.title }}</td>
                                 <td>{{ assignment.course.name }}</td>
-                                <td>{{ assignment.created_at }}</td>
-                                <td>{{ assignment.due_date }}</td>
+                                <td>{{ assignment.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                <td>{{ assignment.due_date.strftime('%Y-%m-%d %H:%M:%S') }}</td>
                                 <td>
                                     {% if assignment.status == 'pending' %}
                                     <span class="badge badge-warning">待完成</span>

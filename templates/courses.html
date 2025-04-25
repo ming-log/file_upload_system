@@ -2,20 +2,219 @@
 
 {% block title %}课程管理 - 文件上传系统{% endblock %}
 
+{% block extra_styles %}
+<style>
+.dashboard-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    flex: 1;
+    min-width: 200px;
+    display: flex;
+    align-items: center;
+    padding: 0;
+    transition: all 0.2s;
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+}
+
+.stat-card-icon {
+    padding: 1.25rem;
+    font-size: 1.75rem;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bg-primary {
+    background-color: #1a73e8;
+}
+
+.bg-success {
+    background-color: #198754;
+}
+
+.bg-info {
+    background-color: #0a58ca;
+}
+
+.stat-card-content {
+    padding: 0.75rem 1.25rem;
+    flex: 1;
+}
+
+.stat-value {
+    font-size: 1.6rem;
+    font-weight: bold;
+    margin-bottom: 0.1rem;
+    color: #1a1a1a;
+}
+
+.stat-label {
+    color: #495057;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.badge-info, .badge-danger {
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.25em 0.6em;
+    border-radius: 50rem;
+    margin: 0.2rem;
+}
+
+.badge-info {
+    background-color: #0a58ca;
+}
+
+.badge-danger {
+    background-color: #dc3545;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 2rem 1rem;
+}
+
+.empty-state img {
+    max-width: 160px;
+    opacity: 0.5;
+    margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+    color: #6c757d;
+    margin-bottom: 0.75rem;
+}
+
+.empty-state p {
+    color: #6c757d;
+    margin-bottom: 1.5rem;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* 更紧凑的布局 */
+.page-header {
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.page-header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.card {
+    margin-bottom: 1rem;
+}
+
+.card-header {
+    padding: 0.75rem 1rem;
+}
+
+.card-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.card-body {
+    padding: 1rem;
+}
+
+.table {
+    margin-bottom: 0.75rem;
+}
+
+.table th, .table td {
+    padding: 0.5rem 0.75rem;
+    vertical-align: middle;
+    text-align: center;
+}
+
+.pagination {
+    margin-top: 0.75rem;
+    margin-bottom: 0.25rem;
+}
+
+.btn-group .btn {
+    padding: 0.25rem 0.5rem;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
-    <h1>课程管理</h1>
-    <a href="{{ url_for('create_course') }}" class="btn btn-primary"><i class="fas fa-plus"></i> 添加课程</a>
+    <h1><i class="fas fa-book fa-fw text-primary"></i> 课程管理</h1>
+    <div>
+        <a href="{{ url_for('create_course') }}" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> 添加课程</a>
+    </div>
 </div>
+
+<!-- 统计卡片 -->
+{% if stats %}
+<div class="dashboard-stats">
+    <div class="stat-card">
+        <div class="stat-card-icon bg-primary">
+            <i class="fas fa-book"></i>
+        </div>
+        <div class="stat-card-content">
+            <div class="stat-value">{{ stats.total_courses }}</div>
+            <div class="stat-label">总课程数</div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-card-icon bg-success">
+            <i class="fas fa-tasks"></i>
+        </div>
+        <div class="stat-card-content">
+            <div class="stat-value">{{ stats.total_assignments if stats.total_assignments is not none else '—' }}</div>
+            <div class="stat-label">总作业数</div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-card-icon bg-info">
+            <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-card-content">
+            <div class="stat-value">{{ stats.total_students if stats.total_students is not none else '—' }}</div>
+            <div class="stat-label">参与学生</div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <div class="card">
     <div class="card-header">
-        <h2>我的课程</h2>
+        <h2>课程列表</h2>
     </div>
     <div class="card-body">
         {% if courses %}
         <div class="table-responsive">
-            <table class="table">
+            <table class="table table-striped">
                 <thead>
                     <tr>
                         <th>课程名称</th>
@@ -41,7 +240,7 @@
                                     {% endfor %}
                                 </div>
                             {% else %}
-                                <span class="badge badge-danger text-white">无关联班级</span>
+                                <span class="badge badge-danger">无关联班级</span>
                             {% endif %}
                         </td>
                         <td>
@@ -59,34 +258,74 @@
                 </tbody>
             </table>
         </div>
+        
+        <!-- 分页控件 -->
+        {% if pagination and pagination.total > 0 %}
+        <nav aria-label="分页导航">
+            <ul class="pagination">
+                <!-- 上一页按钮 -->
+                {% if pagination.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('courses', page=pagination.prev_num) }}" aria-label="上一页">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="fas fa-chevron-left"></i></span>
+                    </li>
+                {% endif %}
+                
+                <!-- 页码按钮 -->
+                {% for page in pagination.iter_pages() %}
+                    {% if page %}
+                        {% if page != pagination.page %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('courses', page=page) }}">{{ page }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ page }}</span>
+                            </li>
+                        {% endif %}
+                    {% else %}
+                        <li class="page-item ellipsis">
+                            <span class="page-link">...</span>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                
+                <!-- 下一页按钮 -->
+                {% if pagination.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('courses', page=pagination.next_num) }}" aria-label="下一页">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="fas fa-chevron-right"></i></span>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        <div class="text-center text-muted mt-2">
+            显示 {{ courses|length }} 个课程，共 {{ pagination.total }} 个课程
+        </div>
+        {% endif %}
+        
         {% else %}
-        <div class="alert alert-info">
-            您还没有创建任何课程。点击"添加课程"按钮创建您的第一个课程。
+        <div class="empty-state">
+            <img src="{{ url_for('static', path='/img/empty-courses.svg') }}" alt="没有课程" onerror="this.src='{{ url_for('static', path='/img/empty-class.svg') }}'">
+            <h3>您还没有创建任何课程</h3>
+            <p>创建课程可以更好地组织您的教学内容和作业</p>
+            <a href="{{ url_for('create_course') }}" class="btn btn-primary btn-lg">
+                <i class="fas fa-plus"></i> 创建第一个课程
+            </a>
         </div>
         {% endif %}
     </div>
 </div>
-
-<style>
-.badge-danger {
-    background-color: #dc3545;
-    color: white;
-    font-size: 0.9rem;
-    font-weight: 600;
-    padding: 0.35em 0.8em;
-    border-radius: 50rem;
-}
-
-.badge-info {
-    background-color: #0a58ca;
-    color: white;
-    font-size: 0.9rem;
-    font-weight: 600;
-    padding: 0.35em 0.8em;
-    border-radius: 50rem;
-    margin: 0.2rem;
-}
-</style>
 {% endblock %}
 
 {% block extra_scripts %}
@@ -96,5 +335,15 @@
             window.location.href = '/delete_' + type + '/' + id;
         }
     }
+    
+    // 长文本提示
+    document.addEventListener('DOMContentLoaded', function() {
+        const descriptionCells = document.querySelectorAll('.description-cell');
+        descriptionCells.forEach(cell => {
+            if (cell.offsetWidth < cell.scrollWidth) {
+                cell.title = cell.dataset.description;
+            }
+        });
+    });
 </script>
 {% endblock %} 

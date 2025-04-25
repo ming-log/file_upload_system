@@ -2,11 +2,244 @@
 
 {% block title %}用户管理 - 文件上传系统{% endblock %}
 
+{% block extra_styles %}
+<style>
+.dashboard-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    flex: 1;
+    min-width: 200px;
+    display: flex;
+    align-items: center;
+    padding: 0;
+    transition: all 0.2s;
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+}
+
+.stat-card-icon {
+    padding: 1.25rem;
+    font-size: 1.75rem;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bg-primary {
+    background-color: #1a73e8;
+}
+
+.bg-success {
+    background-color: #198754;
+}
+
+.bg-info {
+    background-color: #0a58ca;
+}
+
+.bg-warning {
+    background-color: #ffc107;
+}
+
+.stat-card-content {
+    padding: 0.75rem 1.25rem;
+    flex: 1;
+}
+
+.stat-value {
+    font-size: 1.6rem;
+    font-weight: bold;
+    margin-bottom: 0.1rem;
+    color: #1a1a1a;
+}
+
+.stat-label {
+    color: #495057;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.badge-info, .badge-success, .badge-warning {
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.25em 0.6em;
+    border-radius: 50rem;
+}
+
+.badge-info {
+    background-color: #0a58ca;
+}
+
+.badge-success {
+    background-color: #198754;
+}
+
+.badge-warning {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 2rem 1rem;
+}
+
+.empty-state img {
+    max-width: 160px;
+    opacity: 0.5;
+    margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+    color: #6c757d;
+    margin-bottom: 0.75rem;
+}
+
+.empty-state p {
+    color: #6c757d;
+    margin-bottom: 1.5rem;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* 更紧凑的布局 */
+.page-header {
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.page-header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.card {
+    margin-bottom: 1rem;
+}
+
+.card-header {
+    padding: 0.75rem 1rem;
+}
+
+.card-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.card-body {
+    padding: 1rem;
+}
+
+.table {
+    margin-bottom: 0.75rem;
+}
+
+.table th, .table td {
+    padding: 0.5rem 0.75rem;
+    vertical-align: middle;
+}
+
+.pagination {
+    margin-top: 0.75rem;
+    margin-bottom: 0.25rem;
+}
+
+.btn-group .btn {
+    padding: 0.25rem 0.5rem;
+}
+
+/* 过滤器表单样式 */
+.filter-section {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.filter-section .form-group {
+    margin-bottom: 0.5rem;
+}
+
+.filter-section label {
+    font-size: 0.85rem;
+    margin-bottom: 0.25rem;
+}
+
+.filter-section .form-control {
+    padding: 0.375rem 0.75rem;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
-    <h1>用户管理</h1>
+    <h1><i class="fas fa-users-cog fa-fw text-primary"></i> 用户管理</h1>
     <div>
-        <a href="{{ url_for('create_user_page') }}" class="btn btn-primary"><i class="fas fa-user-plus"></i> 创建新用户</a>
+        <a href="/admin/users/create" class="btn btn-primary btn-sm"><i class="fas fa-user-plus"></i> 创建新用户</a>
+    </div>
+</div>
+
+<!-- 统计卡片 -->
+<div class="dashboard-stats">
+    <div class="stat-card">
+        <div class="stat-card-icon bg-primary">
+            <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-card-content">
+            <div class="stat-value">{{ stats.total_users }}</div>
+            <div class="stat-label">总用户数</div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-card-icon bg-info">
+            <i class="fas fa-user-tie"></i>
+        </div>
+        <div class="stat-card-content">
+            <div class="stat-value">{{ stats.teacher_count }}</div>
+            <div class="stat-label">教师数</div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-card-icon bg-success">
+            <i class="fas fa-user-graduate"></i>
+        </div>
+        <div class="stat-card-content">
+            <div class="stat-value">{{ stats.student_count }}</div>
+            <div class="stat-label">学生数</div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-card-icon bg-warning">
+            <i class="fas fa-user-shield"></i>
+        </div>
+        <div class="stat-card-content">
+            <div class="stat-value">{{ stats.admin_count }}</div>
+            <div class="stat-label">管理员数</div>
+        </div>
     </div>
 </div>
 
@@ -15,24 +248,33 @@
         <h2>用户列表</h2>
     </div>
     <div class="card-body">
-        <div class="filter-section mb-3">
-            <div class="d-flex gap-2">
+        <form action="/admin/users" method="get" class="mb-3">
+            <div class="filter-section">
                 <div class="form-group">
-                    <label for="filter-role">按角色筛选:</label>
-                    <select id="filter-role" class="form-control">
-                        <option value="all">所有角色</option>
-                        <option value="admin">管理员</option>
-                        <option value="teacher">老师</option>
-                        <option value="student">学生</option>
+                    <label for="role_filter">按角色筛选:</label>
+                    <select id="role_filter" name="role_filter" class="form-control">
+                        <option value="all" {% if role_filter == 'all' %}selected{% endif %}>所有角色</option>
+                        <option value="admin" {% if role_filter == 'admin' %}selected{% endif %}>管理员</option>
+                        <option value="teacher" {% if role_filter == 'teacher' %}selected{% endif %}>老师</option>
+                        <option value="student" {% if role_filter == 'student' %}selected{% endif %}>学生</option>
                     </select>
                 </div>
                 
                 <div class="form-group">
-                    <label for="search">搜索:</label>
-                    <input type="text" id="search" class="form-control" placeholder="输入用户名...">
+                    <label for="search">搜索用户名:</label>
+                    <input type="text" id="search" name="search" class="form-control" placeholder="输入用户名..." value="{{ search or '' }}">
+                </div>
+                
+                <div class="form-group d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary btn-sm">搜索</button>
+                    {% if search or role_filter != 'all' %}
+                    <a href="/admin/users" class="btn btn-secondary btn-sm ml-2">重置</a>
+                    {% endif %}
                 </div>
             </div>
-        </div>
+            <input type="hidden" name="page" value="1">
+            <input type="hidden" name="per_page" value="{{ pagination.per_page }}">
+        </form>
         
         <div class="table-responsive">
             <table class="table table-striped">
@@ -50,7 +292,7 @@
                 </thead>
                 <tbody>
                     {% for user in users %}
-                    <tr data-role="{{ user.role }}">
+                    <tr>
                         <td>{{ user.id }}</td>
                         <td>{{ user.username }}</td>
                         <td>
@@ -69,53 +311,84 @@
                             {% if user.email %}{% if user.phone %}<br>{% endif %}邮箱: {{ user.email }}{% endif %}
                             {% if not user.phone and not user.email %}-{% endif %}
                         </td>
-                        <td>{{ user.created_at }}</td>
+                        <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
                         <td>
-                            <a href="{{ url_for('edit_user', user_id=user.id) }}" class="btn btn-sm btn-info"><i class="fas fa-edit"></i> 编辑</a>
-                            <a href="{{ url_for('delete_user', user_id=user.id) }}" class="btn btn-sm btn-danger"><i class="fas fa-trash-alt"></i> 删除</a>
+                            <div class="btn-group">
+                                <a href="/admin/users/{{ user.id }}/edit" class="btn btn-sm btn-info"><i class="fas fa-edit"></i> 编辑</a>
+                                <a href="/admin/users/{{ user.id }}/delete" class="btn btn-sm btn-danger"><i class="fas fa-trash-alt"></i> 删除</a>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
+        
+        <!-- 分页控件 -->
+        {% if pagination and pagination.total > 0 %}
+        <nav aria-label="分页导航">
+            <ul class="pagination">
+                <!-- 上一页按钮 -->
+                {% if pagination.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="/admin/users?page={{ pagination.prev_num }}&per_page={{ pagination.per_page }}{% if search %}&search={{ search }}{% endif %}{% if role_filter != 'all' %}&role_filter={{ role_filter }}{% endif %}" aria-label="上一页">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="fas fa-chevron-left"></i></span>
+                    </li>
+                {% endif %}
+                
+                <!-- 页码按钮 -->
+                {% for page in pagination.iter_pages() %}
+                    {% if page %}
+                        {% if page != pagination.page %}
+                            <li class="page-item">
+                                <a class="page-link" href="/admin/users?page={{ page }}&per_page={{ pagination.per_page }}{% if search %}&search={{ search }}{% endif %}{% if role_filter != 'all' %}&role_filter={{ role_filter }}{% endif %}">{{ page }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ page }}</span>
+                            </li>
+                        {% endif %}
+                    {% else %}
+                        <li class="page-item ellipsis">
+                            <span class="page-link">...</span>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                
+                <!-- 下一页按钮 -->
+                {% if pagination.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="/admin/users?page={{ pagination.next_num }}&per_page={{ pagination.per_page }}{% if search %}&search={{ search }}{% endif %}{% if role_filter != 'all' %}&role_filter={{ role_filter }}{% endif %}" aria-label="下一页">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="fas fa-chevron-right"></i></span>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        <div class="text-center text-muted mt-2">
+            显示 {{ users|length }} 个用户，共 {{ pagination.total }} 个用户
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <img src="{{ url_for('static', path='/img/empty-user.svg') }}" alt="没有用户" onerror="this.src='{{ url_for('static', path='/img/empty-class.svg') }}'">
+            <h3>没有找到符合条件的用户</h3>
+            <p>您可以尝试其他搜索条件或者创建新用户</p>
+            <a href="/admin/users/create" class="btn btn-primary btn-lg">
+                <i class="fas fa-user-plus"></i> 创建新用户
+            </a>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
 
-{% block extra_scripts %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // 过滤器功能
-        const filterRole = document.getElementById('filter-role');
-        const searchInput = document.getElementById('search');
-        
-        function filterTable() {
-            const roleFilter = filterRole.value;
-            const searchText = searchInput.value.toLowerCase();
-            const rows = document.querySelectorAll('tbody tr');
-            
-            rows.forEach(row => {
-                const role = row.dataset.role;
-                const username = row.cells[1].textContent.toLowerCase();
-                
-                // 角色过滤
-                const roleMatch = roleFilter === 'all' || role === roleFilter;
-                
-                // 搜索过滤
-                const searchMatch = username.includes(searchText);
-                
-                // 应用过滤
-                if (roleMatch && searchMatch) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-        }
-        
-        filterRole.addEventListener('change', filterTable);
-        searchInput.addEventListener('input', filterTable);
-    });
-</script>
-{% endblock %} 
+{% block extra_scripts %}{% endblock %} 

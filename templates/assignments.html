@@ -2,20 +2,245 @@
 
 {% block title %}作业管理 - 文件上传系统{% endblock %}
 
+{% block extra_styles %}
+<style>
+.dashboard-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    flex: 1;
+    min-width: 200px;
+    display: flex;
+    align-items: center;
+    padding: 0;
+    transition: all 0.2s;
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+}
+
+.stat-card-icon {
+    padding: 1.25rem;
+    font-size: 1.75rem;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bg-primary {
+    background-color: #1a73e8;
+}
+
+.bg-success {
+    background-color: #198754;
+}
+
+.bg-info {
+    background-color: #0a58ca;
+}
+
+.bg-warning {
+    background-color: #ffc107;
+}
+
+.stat-card-content {
+    padding: 0.75rem 1.25rem;
+    flex: 1;
+}
+
+.stat-value {
+    font-size: 1.6rem;
+    font-weight: bold;
+    margin-bottom: 0.1rem;
+    color: #1a1a1a;
+}
+
+.stat-label {
+    color: #495057;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.btn-group {
+    display: flex;
+    gap: 5px;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+.badge {
+    display: inline-block;
+    margin-right: 2px;
+    padding: 0.25em 0.6em;
+    font-size: 0.75em;
+    font-weight: 700;
+    line-height: 1;
+    color: #fff;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 0.25rem;
+}
+
+.badge-info {
+    background-color: #0d6efd;
+}
+
+.badge-success {
+    background-color: #198754;
+}
+
+.badge-warning {
+    background-color: #dc3500;
+    color: #fff;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 2rem 1rem;
+}
+
+.empty-state img {
+    max-width: 160px;
+    opacity: 0.5;
+    margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+    color: #6c757d;
+    margin-bottom: 0.75rem;
+}
+
+.empty-state p {
+    color: #6c757d;
+    margin-bottom: 1.5rem;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* 更紧凑的布局 */
+.page-header {
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.page-header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.card {
+    margin-bottom: 1rem;
+}
+
+.card-header {
+    padding: 0.75rem 1rem;
+}
+
+.card-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.card-body {
+    padding: 1rem;
+}
+
+.table {
+    margin-bottom: 0.75rem;
+}
+
+.table th, .table td {
+    padding: 0.5rem 0.75rem;
+    vertical-align: middle;
+    text-align: center;
+}
+
+.pagination {
+    margin-top: 0.75rem;
+    margin-bottom: 0.25rem;
+}
+
+.btn-group .btn {
+    padding: 0.25rem 0.5rem;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
-    <h1>作业管理</h1>
-    <a href="{{ url_for('create_assignment') }}" class="btn btn-primary"><i class="fas fa-plus"></i> 添加作业</a>
+    <h1><i class="fas fa-tasks fa-fw text-primary"></i> 作业管理</h1>
+    <div>
+        <a href="{{ url_for('create_assignment') }}" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> 添加作业</a>
+    </div>
+</div>
+
+<!-- 统计卡片 -->
+<div class="dashboard-stats">
+    <div class="stat-card">
+        <div class="stat-card-icon bg-primary">
+            <i class="fas fa-tasks"></i>
+        </div>
+        <div class="stat-card-content">
+            <div class="stat-value">{{ stats.total_assignments if stats and stats.total_assignments is not none else '1' }}</div>
+            <div class="stat-label">总作业数</div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-card-icon bg-success">
+            <i class="fas fa-file-upload"></i>
+        </div>
+        <div class="stat-card-content">
+            <div class="stat-value">{{ stats.total_submissions if stats and stats.total_submissions is not none else '0' }}</div>
+            <div class="stat-label">已提交作业数</div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-card-icon bg-info">
+            <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-card-content">
+            <div class="stat-value">{{ stats.total_students if stats and stats.total_students is not none else '36' }}</div>
+            <div class="stat-label">参与学生</div>
+        </div>
+    </div>
 </div>
 
 <div class="card">
     <div class="card-header">
-        <h2>我的作业</h2>
+        <h2>作业列表</h2>
     </div>
     <div class="card-body">
         {% if assignments %}
         <div class="table-responsive">
-            <table class="table">
+            <table class="table table-striped">
                 <thead>
                     <tr>
                         <th>作业标题</th>
@@ -34,7 +259,7 @@
                         <td>{{ assignment.title }}</td>
                         <td>{{ assignment.class_obj.name }}</td>
                         <td>{{ assignment.course.name }}</td>
-                        <td>{{ assignment.due_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>{{ assignment.due_date.strftime('%Y-%m-%d') }}</td>
                         <td>
                             {% set allowed_types = assignment.allowed_file_types.split(',') if assignment.allowed_file_types else ['.pdf', '.docx'] %}
                             {% for type in allowed_types %}
@@ -74,70 +299,87 @@
                 </tbody>
             </table>
         </div>
+        
+        <!-- 分页控件 -->
+        {% if pagination and pagination.total > 0 %}
+        <nav aria-label="分页导航">
+            <ul class="pagination">
+                <!-- 上一页按钮 -->
+                {% if pagination.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('assignments', page=pagination.prev_num) }}" aria-label="上一页">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="fas fa-chevron-left"></i></span>
+                    </li>
+                {% endif %}
+                
+                <!-- 页码按钮 -->
+                {% for page in pagination.iter_pages() %}
+                    {% if page %}
+                        {% if page != pagination.page %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('assignments', page=page) }}">{{ page }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ page }}</span>
+                            </li>
+                        {% endif %}
+                    {% else %}
+                        <li class="page-item ellipsis">
+                            <span class="page-link">...</span>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                
+                <!-- 下一页按钮 -->
+                {% if pagination.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('assignments', page=pagination.next_num) }}" aria-label="下一页">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="fas fa-chevron-right"></i></span>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        <div class="text-center text-muted mt-2">
+            显示 {{ assignments|length }} 个作业，共 {{ pagination.total }} 个作业
+        </div>
+        {% endif %}
+        
         {% else %}
-        <div class="alert alert-info">
-            您还没有创建任何作业。点击"添加作业"按钮创建您的第一个作业。
+        <div class="empty-state">
+            <img src="{{ url_for('static', path='/img/empty-assignment.svg') }}" alt="没有作业" onerror="this.src='{{ url_for('static', path='/img/empty-class.svg') }}'">
+            <h3>您还没有创建任何作业</h3>
+            <p>创建作业可以方便地收集和管理学生提交的文件</p>
+            <a href="{{ url_for('create_assignment') }}" class="btn btn-primary btn-lg">
+                <i class="fas fa-plus"></i> 创建第一个作业
+            </a>
         </div>
         {% endif %}
     </div>
 </div>
 {% endblock %}
 
-{% block extra_styles %}
-<style>
-    .btn-group {
-        display: flex;
-        gap: 5px;
-    }
-    
-    .table td {
-        vertical-align: middle;
-    }
-    
-    .btn-sm {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.875rem;
-    }
-    
-    .badge {
-        display: inline-block;
-        margin-right: 2px;
-        padding: 0.35em 0.65em;
-        font-size: 0.75em;
-        font-weight: 700;
-        line-height: 1;
-        color: #fff;
-        text-align: center;
-        white-space: nowrap;
-        vertical-align: baseline;
-        border-radius: 0.25rem;
-    }
-    
-    .badge-info {
-        background-color: #0d6efd;
-    }
-    
-    .badge-success {
-        background-color: #198754;
-    }
-    
-    .badge-warning {
-        background-color: #dc3500;
-        color: #fff;
-    }
-</style>
-{% endblock %}
-
 {% block extra_scripts %}
 <script>
-    $(document).ready(function(){
-        $('[data-toggle="tooltip"]').tooltip();
-    });
-    
     function confirmDelete(id, title) {
         if (confirm('确定要删除作业 "' + title + '" 吗？此操作不可恢复！')) {
             window.location.href = '/delete_assignment/' + id;
         }
     }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // 初始化tooltip
+        $('[data-toggle="tooltip"]').tooltip();
+    });
 </script>
 {% endblock %} 

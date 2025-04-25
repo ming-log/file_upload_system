@@ -16,20 +16,102 @@ templates = Jinja2Templates(directory="templates")
 @router.get("/courses", response_class=HTMLResponse, name="courses")
 async def list_courses(
     request: Request,
+    page: int = 1,
+    per_page: int = 8,
     current_user: User = Depends(teacher_required),
     db: Session = Depends(get_db)
 ):
-    # 对于管理员，显示所有课程
+    # 构建基础查询
     if current_user.role == "admin":
-        courses = db.query(Course).all()
+        base_query = db.query(Course)
     else:
         # 教师只看到自己的课程
-        courses = db.query(Course).filter(Course.teacher_id == current_user.id).all()
+        base_query = db.query(Course).filter(Course.teacher_id == current_user.id)
+    
+    # 计算总数和总页数
+    total = base_query.count()
+    total_pages = (total + per_page - 1) // per_page  # 向上取整
+    
+    # 分页查询
+    courses = base_query.order_by(Course.id).offset((page - 1) * per_page).limit(per_page).all()
+    
+    # 创建分页对象
+    pagination = {
+        "page": page,
+        "per_page": per_page,
+        "total": total,
+        "total_pages": total_pages,
+        "has_prev": page > 1,
+        "has_next": page < total_pages,
+        "prev_num": page - 1 if page > 1 else None,
+        "next_num": page + 1 if page < total_pages else None,
+        "iter_pages": lambda left_edge=2, right_edge=2, left_current=2, right_current=2: _iter_pages(
+            page, total_pages, left_edge, right_edge, left_current, right_current
+        )
+    }
+    
+    # 计算统计数据
+    stats = {
+        "total_courses": total,
+        "total_assignments": None,
+        "total_students": None
+    }
+    
+    # 计算当前用户的课程相关的统计数据
+    if current_user.role == "admin":
+        # 管理员查看全系统的统计
+        stats["total_assignments"] = db.query(Assignment).count()
+        
+        # 计算参与课程的学生总数（去重）
+        from sqlalchemy import func, distinct
+        student_count = db.query(func.count(distinct(User.id))).join(
+            Class.students
+        ).join(
+            Class.courses
+        ).scalar()
+        stats["total_students"] = student_count
+    else:
+        # 教师查看自己课程的统计
+        teacher_assignments = db.query(Assignment).join(
+            Course, Assignment.course_id == Course.id
+        ).filter(
+            Course.teacher_id == current_user.id
+        ).count()
+        stats["total_assignments"] = teacher_assignments
+        
+        # 计算参与该教师课程的学生总数（去重）
+        from sqlalchemy import func, distinct
+        student_count = db.query(func.count(distinct(User.id))).join(
+            Class.students
+        ).join(
+            Class.courses
+        ).filter(
+            Course.teacher_id == current_user.id
+        ).scalar()
+        stats["total_students"] = student_count
     
     return templates.TemplateResponse(
         "courses.html",
-        {"request": request, "user": current_user, "courses": courses}
+        {
+            "request": request, 
+            "user": current_user, 
+            "courses": courses,
+            "pagination": pagination,
+            "stats": stats
+        }
     )
+
+def _iter_pages(page, total_pages, left_edge=2, right_edge=2, left_current=2, right_current=2):
+    """辅助函数，用于生成分页序列"""
+    last = 0
+    for num in range(1, total_pages + 1):
+        if num <= left_edge or \
+           (num > page - left_current - 1 and num < page + right_current) or \
+           num > total_pages - right_edge:
+            if last + 1 != num:
+                yield None
+            yield num
+            last = num
 
 @router.get("/courses/create", response_class=HTMLResponse, name="create_course")
 async def create_course_page(

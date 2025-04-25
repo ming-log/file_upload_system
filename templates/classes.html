@@ -2,152 +2,36 @@
 
 {% block title %}班级管理 - 文件上传系统{% endblock %}
 
-{% block content %}
-<div class="page-header">
-    <h1><i class="fas fa-users-class fa-fw text-primary dashboard-icon"></i> 班级管理</h1>
-    <button class="btn btn-primary btn-lg" onclick="window.location.href='{{ url_for('create_class') }}'">
-        <i class="fas fa-plus-circle"></i> 添加班级
-    </button>
-</div>
-
-<div class="dashboard-stats mb-4">
-    <div class="stat-card">
-        <div class="stat-card-icon bg-primary">
-            <i class="fas fa-users"></i>
-        </div>
-        <div class="stat-card-content">
-            <div class="stat-value">{{ classes|length }}</div>
-            <div class="stat-label">总班级数</div>
-        </div>
-    </div>
-    
-    <div class="stat-card">
-        <div class="stat-card-icon bg-success">
-            <i class="fas fa-user-graduate"></i>
-        </div>
-        <div class="stat-card-content">
-            <div class="stat-value">{{ classes|map(attribute='students')|map('length')|sum }}</div>
-            <div class="stat-label">总学生数</div>
-        </div>
-    </div>
-    
-    <div class="stat-card">
-        <div class="stat-card-icon bg-info">
-            <i class="fas fa-book"></i>
-        </div>
-        <div class="stat-card-content">
-            <div class="stat-value">{{ classes|map(attribute='courses')|map('length')|sum }}</div>
-            <div class="stat-label">关联课程</div>
-        </div>
-    </div>
-</div>
-
-<div class="card shadow-lg border-0">
-    <div class="card-header bg-gradient-primary text-white">
-        <h2 class="mb-0"><i class="fas fa-list-alt"></i> 我的班级</h2>
-    </div>
-    <div class="card-body">
-        {% if classes %}
-        <div class="table-responsive">
-            <table class="table table-hover table-striped">
-                <thead class="thead-light">
-                    <tr>
-                        <th scope="col" style="width: 20%;">班级名称</th>
-                        <th scope="col" style="width: 25%;">描述</th>
-                        <th scope="col" style="width: 10%;"><i class="fas fa-user-tie"></i> 教师</th>
-                        <th scope="col" style="width: 10%;"><i class="fas fa-user-graduate"></i>学生数</th>
-                        <th scope="col" style="width: 10%;"><i class="fas fa-book"></i>课程数</th>
-                        <th scope="col" style="width: 20%;">操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for class in classes %}
-                    <tr>
-                        <td class="font-weight-bold">{{ class.name }}</td>
-                        <td class="description-cell" data-description="{{ class.description or '无' }}" style="max-width: 250px; width: 250px;">{{ class.description or '无' }}</td>
-                        <td class="text-center">
-                            {{ class.teacher.username }}
-                        </td>
-                        <td class="text-center">
-                            <span class="badge custom-badge-primary">{{ class.students|length }}</span>
-                        </td>
-                        <td class="text-center">
-                            <span class="badge custom-badge-info">{{ class.courses|length }}</span>
-                        </td>
-                        <td>
-                            <div class="btn-group" role="group">
-                                <a href="{{ url_for('view_class', class_id=class.id) }}" class="btn btn-sm btn-primary" title="编辑班级">
-                                    <i class="fas fa-edit"></i> 编辑
-                                </a>
-                                <button onclick="confirmDelete('class', '{{ class.id }}', '{{ class.name }}')" class="btn btn-sm btn-danger" title="删除班级">
-                                    <i class="fas fa-trash"></i> 删除
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% else %}
-        <div class="text-center py-5">
-            <img src="{{ url_for('static', path='/img/empty-class.svg') }}" alt="没有班级" style="max-width: 200px; opacity: 0.5;" class="mb-3">
-            <h3 class="text-muted">您还没有创建任何班级</h3>
-            <p class="text-muted mb-4">创建班级可以更好地组织您的学生和课程</p>
-            <a href="{{ url_for('create_class') }}" class="btn btn-primary btn-lg">
-                <i class="fas fa-plus-circle"></i> 创建第一个班级
-            </a>
-        </div>
-        {% endif %}
-    </div>
-</div>
-
+{% block extra_styles %}
 <style>
-.bg-gradient-primary {
-    background: linear-gradient(45deg, #1a73e8, #289df5);
-}
-
-.card {
-    transition: all 0.3s;
-}
-
-.card:hover {
-    transform: translateY(-5px);
-}
-
-.badge-pill {
-    font-size: 0.9rem;
-    padding: 0.35em 0.8em;
-}
-
 .dashboard-stats {
     display: flex;
     flex-wrap: wrap;
-    gap: 1rem;
-    margin-bottom: 2rem;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
 }
 
 .stat-card {
     background: white;
-    border-radius: 10px;
+    border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
     flex: 1;
-    min-width: 220px;
+    min-width: 200px;
     display: flex;
     align-items: center;
     padding: 0;
-    transition: all 0.3s;
+    transition: all 0.2s;
 }
 
 .stat-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    transform: translateY(-3px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.12);
 }
 
 .stat-card-icon {
-    padding: 1.5rem;
-    font-size: 2rem;
+    padding: 1rem;
+    font-size: 1.5rem;
     color: white;
     display: flex;
     align-items: center;
@@ -167,78 +51,287 @@
 }
 
 .stat-card-content {
-    padding: 1rem 1.5rem;
+    padding: 0.5rem 1rem;
     flex: 1;
 }
 
 .stat-value {
-    font-size: 1.8rem;
+    font-size: 1.4rem;
     font-weight: bold;
-    margin-bottom: 0.3rem;
+    margin-bottom: 0;
     color: #1a1a1a;
 }
 
 .stat-label {
     color: #495057;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     font-weight: 500;
 }
 
-.table th {
-    background-color: #f1f3f5;
-}
-
-.btn-group .btn {
-    margin-right: 0.25rem;
-}
-
-/* 自定义徽章样式，解决背景色和文字颜色对比度问题 */
 .custom-badge-primary {
     background-color: #1a73e8;
     color: white;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: 600;
-    padding: 0.35em 0.8em;
+    padding: 0.25em 0.6em;
     border-radius: 50rem;
 }
 
 .custom-badge-info {
     background-color: #0a58ca;
     color: white;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: 600;
-    padding: 0.35em 0.8em;
+    padding: 0.25em 0.6em;
     border-radius: 50rem;
 }
 
-/* 页面标题样式统一 */
+.empty-state {
+    text-align: center;
+    padding: 1.5rem 1rem;
+}
+
+.empty-state img {
+    max-width: 140px;
+    opacity: 0.5;
+    margin-bottom: 0.75rem;
+}
+
+.empty-state h3 {
+    color: #6c757d;
+    margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+    color: #6c757d;
+    margin-bottom: 1rem;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* More compact layout */
+.page-header {
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
 .page-header h1 {
+    margin: 0;
+    font-size: 1.5rem;
     display: flex;
     align-items: center;
-    font-size: 1.8rem;
-    font-weight: 600;
-    color: var(--primary-color);
+    gap: 0.5rem;
 }
 
-.page-header h1 i {
-    margin-right: 1.5rem;
+.card {
+    margin-bottom: 0.75rem;
 }
 
-.dashboard-icon {
-    margin-right: 1.5rem !important;
+.card-header {
+    padding: 0.5rem 0.75rem;
 }
 
-/* 确保卡片标题图标间距合适 */
-.card-header h2 i {
-    margin-right: 0.75rem;
+.card-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.card-body {
+    padding: 0.75rem;
+}
+
+.table {
+    margin-bottom: 0.5rem;
+}
+
+.table th, .table td {
+    padding: 0.4rem 0.5rem;
+    vertical-align: middle;
+}
+
+.pagination {
+    margin-top: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.btn-group .btn {
+    padding: 0.25rem 0.5rem;
 }
 </style>
+{% endblock %}
 
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-chalkboard fa-fw text-primary"></i> 班级管理</h1>
+    <div>
+        <a href="{{ url_for('create_class') }}" class="btn btn-primary btn-sm"><i class="fas fa-plus-circle"></i> 添加班级</a>
+    </div>
+</div>
+
+<!-- 统计卡片 -->
+<div class="dashboard-stats">
+    <div class="stat-card">
+        <div class="stat-card-icon bg-primary">
+            <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-card-content">
+            <div class="stat-value">{{ stats.total_classes }}</div>
+            <div class="stat-label">总班级数</div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-card-icon bg-success">
+            <i class="fas fa-user-graduate"></i>
+        </div>
+        <div class="stat-card-content">
+            <div class="stat-value">{{ stats.total_students if stats.total_students is not none else '—' }}</div>
+            <div class="stat-label">总学生数</div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-card-icon bg-info">
+            <i class="fas fa-book"></i>
+        </div>
+        <div class="stat-card-content">
+            <div class="stat-value">{{ stats.total_courses if stats.total_courses is not none else '—' }}</div>
+            <div class="stat-label">关联课程</div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2>班级列表</h2>
+    </div>
+    <div class="card-body">
+        {% if classes %}
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>班级名称</th>
+                        <th>描述</th>
+                        <th><i class="fas fa-user-tie"></i> 教师</th>
+                        <th><i class="fas fa-user-graduate"></i> 学生数</th>
+                        <th><i class="fas fa-book"></i> 课程数</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for class in classes %}
+                    <tr>
+                        <td class="font-weight-bold">{{ class.name }}</td>
+                        <td class="description-cell" data-description="{{ class.description or '无' }}" style="max-width: 250px; width: 250px;">{{ class.description or '无' }}</td>
+                        <td>{{ class.teacher.username }}</td>
+                        <td class="text-center">
+                            <span class="custom-badge-primary">{{ class.students|length }}</span>
+                        </td>
+                        <td class="text-center">
+                            <span class="custom-badge-info">{{ class.courses|length }}</span>
+                        </td>
+                        <td>
+                            <div class="btn-group">
+                                <a href="{{ url_for('view_class', class_id=class.id) }}" class="btn btn-sm btn-info"><i class="fas fa-edit"></i> 编辑</a>
+                                <button onclick="confirmDelete('class', '{{ class.id }}', '{{ class.name }}')" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i> 删除</button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- 分页控件 -->
+        {% if pagination and pagination.total > 0 %}
+        <nav aria-label="分页导航">
+            <ul class="pagination">
+                <!-- 上一页按钮 -->
+                {% if pagination.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('classes', page=pagination.prev_num) }}" aria-label="上一页">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="fas fa-chevron-left"></i></span>
+                    </li>
+                {% endif %}
+                
+                <!-- 页码按钮 -->
+                {% for page in pagination.iter_pages() %}
+                    {% if page %}
+                        {% if page != pagination.page %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('classes', page=page) }}">{{ page }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ page }}</span>
+                            </li>
+                        {% endif %}
+                    {% else %}
+                        <li class="page-item ellipsis">
+                            <span class="page-link">...</span>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                
+                <!-- 下一页按钮 -->
+                {% if pagination.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('classes', page=pagination.next_num) }}" aria-label="下一页">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="fas fa-chevron-right"></i></span>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        <div class="text-center text-muted mt-2">
+            显示 {{ classes|length }} 个班级，共 {{ pagination.total }} 个班级
+        </div>
+        {% endif %}
+        
+        {% else %}
+        <div class="empty-state">
+            <img src="{{ url_for('static', path='/img/empty-class.svg') }}" alt="没有班级">
+            <h3>您还没有创建任何班级</h3>
+            <p>创建班级可以更好地组织您的学生和课程</p>
+            <a href="{{ url_for('create_class') }}" class="btn btn-primary btn-lg">
+                <i class="fas fa-plus-circle"></i> 创建第一个班级
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
 <script>
     function confirmDelete(type, id, name) {
         if (confirm('确定要删除班级 "' + name + '" 吗？此操作不可恢复！')) {
-            window.location.href = "/delete_class/" + id;
+            window.location.href = '/delete_' + type + '/' + id;
         }
     }
+    
+    // 长文本提示
+    document.addEventListener('DOMContentLoaded', function() {
+        const descriptionCells = document.querySelectorAll('.description-cell');
+        descriptionCells.forEach(cell => {
+            if (cell.offsetWidth < cell.scrollWidth) {
+                cell.title = cell.dataset.description;
+            }
+        });
+    });
 </script>
 {% endblock %} 

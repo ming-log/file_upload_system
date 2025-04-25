@@ -9,6 +9,7 @@ from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from sqlalchemy.orm import Session
 import json
+from datetime import datetime
 
 from app.database import engine, get_db, Base
 from app.models import User
@@ -72,6 +73,15 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Jinja2模板
 templates = Jinja2Templates(directory="templates")
+
+# 添加自定义过滤器
+def datetime_format(value):
+    """将datetime格式化为年月日时分秒格式，不显示毫秒"""
+    if isinstance(value, datetime):
+        return value.strftime('%Y-%m-%d %H:%M:%S')
+    return value
+
+templates.env.filters["datetime_format"] = datetime_format
 
 # 全局异常处理
 @app.exception_handler(StarletteHTTPException)
@@ -188,7 +198,7 @@ async def generic_exception_handler(request: Request, exc: Exception):
 
 # 包含路由
 app.include_router(auth.router, tags=["认证"])
-app.include_router(users.router, tags=["用户管理"])
+app.include_router(users.router, prefix="/admin", tags=["用户管理"])
 app.include_router(classes.router, tags=["班级管理"])
 app.include_router(courses.router, tags=["课程管理"])
 app.include_router(assignments.router, tags=["作业管理"])

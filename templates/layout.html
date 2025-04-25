@@ -3,16 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="现代化文件上传系统 - 简单、高效、安全">
+    <meta name="theme-color" content="#3a86ff">
     <title>{% block title %}文件上传系统{% endblock %}</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     {% block extra_styles %}{% endblock %}
     {% block extra_head %}{% endblock %}
+    <style>
+        /* Global styles for tables */
+        .table th, .table td {
+            text-align: center;
+            vertical-align: middle;
+        }
+    </style>
 </head>
 <body>
     <header>
         <div class="container">
             <div class="navbar">
+                <button class="mobile-menu-toggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                
                 <a href="/dashboard" class="logo">
                     <i class="fas fa-cloud-upload-alt"></i>
                     <span>文件上传系统</span>
@@ -23,7 +39,7 @@
                         <li><a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.url.path == '/dashboard' }}"><i class="fas fa-home"></i> 主页</a></li>
                         
                         {% if user.role == 'admin' %}
-                        <li><a href="{{ url_for('admin_panel') }}" class="{{ 'active' if request.url.path == '/admin/users' }}"><i class="fas fa-users-cog"></i> 用户管理</a></li>
+                        <li><a href="/admin/users" class="{{ 'active' if request.url.path == '/admin/users' }}"><i class="fas fa-users-cog"></i> 用户管理</a></li>
                         {% endif %}
                         
                         {% if user.role == 'teacher' or user.role == 'admin' %}
@@ -46,12 +62,8 @@
                         <span class="user-name">{{ user.username }}</span>
                         <span class="user-role">{{ user.role|replace('admin', '管理员')|replace('teacher', '教师')|replace('student', '学生') }}</span>
                     </div>
-                    <a href="{{ url_for('logout') }}" class="logout-btn"><i class="fas fa-sign-out-alt"></i></a>
+                    <a href="{{ url_for('logout') }}" class="logout-btn" title="退出登录"><i class="fas fa-sign-out-alt"></i></a>
                 </div>
-                
-                <button class="mobile-menu-toggle">
-                    <i class="fas fa-bars"></i>
-                </button>
             </div>
         </div>
     </header>
@@ -99,8 +111,8 @@
     <script src="{{ url_for('static', path='/js/main.js') }}"></script>
     
     <script>
-    // 移动端菜单切换
     document.addEventListener('DOMContentLoaded', function() {
+        // 移动端菜单切换
         const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
         const navLinksContainer = document.querySelector('.nav-links-container');
         
@@ -108,33 +120,6 @@
             mobileMenuToggle.addEventListener('click', function() {
                 navLinksContainer.classList.toggle('active');
                 this.classList.toggle('active');
-            });
-        }
-        
-        // 头像下拉菜单控制
-        const avatarToggle = document.querySelector('.avatar-toggle');
-        const dropdownMenu = document.querySelector('.dropdown-menu');
-        
-        if (avatarToggle && dropdownMenu) {
-            // 鼠标进入头像时显示下拉菜单
-            avatarToggle.addEventListener('mouseenter', function() {
-                dropdownMenu.style.display = 'block';
-            });
-            
-            // 为整个下拉区域添加鼠标离开事件
-            const dropdown = document.querySelector('.user-avatar.dropdown');
-            dropdown.addEventListener('mouseleave', function() {
-                dropdownMenu.style.display = 'none';
-            });
-            
-            // 点击头像也触发下拉菜单
-            avatarToggle.addEventListener('click', function(e) {
-                e.preventDefault();
-                if (dropdownMenu.style.display === 'block') {
-                    dropdownMenu.style.display = 'none';
-                } else {
-                    dropdownMenu.style.display = 'block';
-                }
             });
         }
         
@@ -161,13 +146,27 @@
                 }, 300);
             });
         }, 5000);
+
+        // 添加滚动效果
+        const addScrollEffect = () => {
+            const scrollPosition = window.scrollY;
+            
+            if (scrollPosition > 10) {
+                document.querySelector('header').classList.add('scrolled');
+            } else {
+                document.querySelector('header').classList.remove('scrolled');
+            }
+        };
+        
+        window.addEventListener('scroll', addScrollEffect);
+        addScrollEffect(); // 初始化
     });
     </script>
     
     {% block extra_scripts %}{% endblock %}
     
     <!-- 用户头像下拉菜单 -->
-    <div id="headerDropdownMenu" style="display: none; position: fixed; z-index: 9999; background-color: white; width: 180px; border-radius: 8px; box-shadow: 0 5px 20px rgba(0,0,0,0.3); border: 2px solid #4361ee;">
+    <div id="headerDropdownMenu" style="display: none; position: fixed; z-index: 9999; background-color: white; width: 180px; border-radius: 8px; box-shadow: 0 5px 20px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.7); backdrop-filter: blur(10px);">
         <a href="{{ url_for('profile') }}" class="dropdown-item">
             <i class="fas fa-user-edit"></i> 编辑个人信息
         </a>

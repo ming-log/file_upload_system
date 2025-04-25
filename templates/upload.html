@@ -471,7 +471,7 @@
                 </div>
                 <div class="meta-content">
                     <div class="meta-label">截止日期</div>
-                    <div class="meta-value">{{ assignment.due_date }}</div>
+                    <div class="meta-value">{{ assignment.due_date|datetime_format }}</div>
                 </div>
             </div>
         </div>
@@ -486,7 +486,7 @@
         {% if now < assignment.due_date %}
         <div class="deadline-warning">
             <i class="fas fa-exclamation-circle"></i>
-            <p>请注意：本作业截止日期为 {{ assignment.due_date }}，请确保在截止日期前提交。</p>
+            <p>请注意：本作业截止日期为 {{ assignment.due_date|datetime_format }}，请确保在截止日期前提交。</p>
         </div>
         {% else %}
         <div class="deadline-warning" style="background-color: rgba(231, 29, 54, 0.1); border-left-color: #e71d36;">
@@ -501,7 +501,7 @@
                 <i class="fas fa-check"></i>
             </div>
             <div class="success-text">作业已提交</div>
-            <div class="success-subtext">您已于 {{ submission.created_at }} 成功提交此作业</div>
+            <div class="success-subtext">您已于 {{ submission.created_at|datetime_format }} 成功提交此作业</div>
         </div>
         
         <div class="upload-title">
@@ -530,7 +530,7 @@
                         <div class="file-meta">
                             <span>{{ file.size }}</span>
                             <span>·</span>
-                            <span>上传于 {{ file.created_at }}</span>
+                            <span>上传于 {{ file.created_at|datetime_format }}</span>
                         </div>
                     </div>
                 </div>

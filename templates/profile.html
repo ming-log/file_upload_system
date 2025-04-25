@@ -39,7 +39,7 @@
                     {% endif %}
                 </div>
                 <div class="user-info-item">
-                    <strong>加入时间:</strong> {{ user.created_at }}
+                    <strong>加入时间:</strong> {{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
                 </div>
             </div>
         </div>
