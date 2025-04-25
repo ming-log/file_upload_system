@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="page-header">
-    <h1><i class="fas fa-users-class fa-fw text-primary"></i> 班级管理</h1>
+    <h1><i class="fas fa-users-class fa-fw text-primary dashboard-icon"></i> 班级管理</h1>
     <button class="btn btn-primary btn-lg" onclick="window.location.href='{{ url_for('create_class') }}'">
         <i class="fas fa-plus-circle"></i> 添加班级
     </button>
@@ -54,8 +54,8 @@
                     <tr>
                         <th scope="col" style="width: 25%;">班级名称</th>
                         <th scope="col" style="width: 35%;">描述</th>
-                        <th scope="col" style="width: 10%;"><i class="fas fa-user-graduate"></i> 学生数量</th>
-                        <th scope="col" style="width: 10%;"><i class="fas fa-book"></i> 课程数量</th>
+                        <th scope="col" style="width: 10%;"><i class="fas fa-user-graduate"></i>学生数</th>
+                        <th scope="col" style="width: 10%;"><i class="fas fa-book"></i>课程数</th>
                         <th scope="col" style="width: 20%;">操作</th>
                     </tr>
                 </thead>
@@ -63,12 +63,12 @@
                     {% for class in classes %}
                     <tr>
                         <td class="font-weight-bold">{{ class.name }}</td>
-                        <td>{{ class.description or '无' }}</td>
+                        <td class="description-cell" data-description="{{ class.description or '无' }}" style="max-width: 250px; width: 250px;">{{ class.description or '无' }}</td>
                         <td class="text-center">
-                            <span class="badge badge-primary badge-pill">{{ class.students|length }}</span>
+                            <span class="badge custom-badge-primary">{{ class.students|length }}</span>
                         </td>
                         <td class="text-center">
-                            <span class="badge badge-info badge-pill">{{ class.courses|length }}</span>
+                            <span class="badge custom-badge-info">{{ class.courses|length }}</span>
                         </td>
                         <td>
                             <div class="btn-group" role="group">
@@ -155,11 +155,11 @@
 }
 
 .bg-success {
-    background-color: #34a853;
+    background-color: #198754;
 }
 
 .bg-info {
-    background-color: #4285f4;
+    background-color: #0a58ca;
 }
 
 .stat-card-content {
@@ -171,19 +171,62 @@
     font-size: 1.8rem;
     font-weight: bold;
     margin-bottom: 0.3rem;
+    color: #1a1a1a;
 }
 
 .stat-label {
-    color: #666;
+    color: #495057;
     font-size: 0.9rem;
+    font-weight: 500;
 }
 
 .table th {
-    background-color: #f8f9fa;
+    background-color: #f1f3f5;
 }
 
 .btn-group .btn {
     margin-right: 0.25rem;
+}
+
+/* 自定义徽章样式，解决背景色和文字颜色对比度问题 */
+.custom-badge-primary {
+    background-color: #1a73e8;
+    color: white;
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 0.35em 0.8em;
+    border-radius: 50rem;
+}
+
+.custom-badge-info {
+    background-color: #0a58ca;
+    color: white;
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 0.35em 0.8em;
+    border-radius: 50rem;
+}
+
+/* 页面标题样式统一 */
+.page-header h1 {
+    display: flex;
+    align-items: center;
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.page-header h1 i {
+    margin-right: 1.5rem;
+}
+
+.dashboard-icon {
+    margin-right: 1.5rem !important;
+}
+
+/* 确保卡片标题图标间距合适 */
+.card-header h2 i {
+    margin-right: 0.75rem;
 }
 </style>
 {% endblock %} 

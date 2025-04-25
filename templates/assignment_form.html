@@ -3,123 +3,316 @@
 {% block title %}{% if assignment %}编辑作业{% else %}创建作业{% endif %} - 文件上传系统{% endblock %}
 
 {% block content %}
-<h1>{% if assignment %}编辑作业{% else %}创建作业{% endif %}</h1>
+<div class="page-header">
+    <h1><i class="fas fa-tasks"></i> {% if assignment %}编辑作业: {{ assignment.title }}{% else %}创建新作业{% endif %}</h1>
+    <a href="{{ url_for('assignments') }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> 返回作业列表
+    </a>
+</div>
 
-<div class="card">
-    <h2 class="card-title">作业信息</h2>
-    <form action="{% if assignment %}{{ url_for('update_assignment', assignment_id=assignment.id) }}{% else %}{{ url_for('create_assignment') }}{% endif %}" method="post" class="needs-validation">
-        <div class="form-group">
-            <label for="title">作业标题</label>
-            <input type="text" id="title" name="title" value="{{ assignment.title if assignment else '' }}" required>
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-gradient-primary text-white">
+                <h2 class="card-title mb-0"><i class="fas fa-info-circle"></i> 作业基本信息</h2>
+            </div>
+            <div class="card-body">
+                <form action="{% if assignment %}{{ url_for('update_assignment', assignment_id=assignment.id) }}{% else %}{{ url_for('create_assignment') }}{% endif %}" method="post" class="needs-validation">
+                    <div class="form-row">
+                        <div class="form-group col-md-12">
+                            <label for="title">作业标题</label>
+                            <input type="text" id="title" name="title" class="form-control" value="{{ assignment.title if assignment else '' }}" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="description">作业描述</label>
+                        <textarea id="description" name="description" rows="5" class="form-control" required>{{ assignment.description if assignment else '' }}</textarea>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="class_id">班级</label>
+                            <select id="class_id" name="class_id" class="form-control" required>
+                                <option value="">-- 请选择班级 --</option>
+                                {% for class in classes %}
+                                <option value="{{ class.id }}" {% if assignment and assignment.class_id == class.id %}selected{% endif %}>
+                                    {{ class.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="form-group col-md-6">
+                            <label for="course_id">课程</label>
+                            <select id="course_id" name="course_id" class="form-control" required {% if not courses %}disabled{% endif %}>
+                                <option value="">-- 请先选择班级 --</option>
+                                {% if courses %}
+                                    {% for course in courses %}
+                                    <option value="{{ course.id }}" {% if assignment and assignment.course_id == course.id %}selected{% endif %}>
+                                        {{ course.name }}
+                                    </option>
+                                    {% endfor %}
+                                {% endif %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="due_date">截止日期</label>
+                        <input type="datetime-local" id="due_date" name="due_date" class="form-control" value="{{ assignment.due_date.strftime('%Y-%m-%dT%H:%M') if assignment and assignment.due_date else '' }}" required>
+                    </div>
+                    
+                    <div class="form-group mt-4 text-right">
+                        <a href="{{ url_for('assignments') }}" class="btn btn-light mr-2">取消</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> 保存作业
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
-        
-        <div class="form-group">
-            <label for="description">作业描述</label>
-            <textarea id="description" name="description" rows="5" required>{{ assignment.description if assignment else '' }}</textarea>
-        </div>
-        
-        <div class="form-group">
-            <label for="class_id">班级</label>
-            <select id="class_id" name="class_id" required>
-                <option value="">-- 请选择班级 --</option>
-                {% for class in classes %}
-                <option value="{{ class.id }}" {% if assignment and assignment.class_id == class.id %}selected{% endif %}>
-                    {{ class.name }}
-                </option>
-                {% endfor %}
-            </select>
-        </div>
-        
-        <div class="form-group">
-            <label for="course_id">课程</label>
-            <select id="course_id" name="course_id" required {% if not courses %}disabled{% endif %}>
-                <option value="">-- 请先选择班级 --</option>
-                {% if courses %}
-                    {% for course in courses %}
-                    <option value="{{ course.id }}" {% if assignment and assignment.course_id == course.id %}selected{% endif %}>
-                        {{ course.name }}
-                    </option>
-                    {% endfor %}
-                {% endif %}
-            </select>
-        </div>
-        
-        <div class="form-group">
-            <label for="due_date">截止日期</label>
-            <input type="datetime-local" id="due_date" name="due_date" value="{{ assignment.due_date|date if assignment else '' }}" required>
-        </div>
-        
-        <div class="form-group">
-            <button type="submit" class="btn">保存作业</button>
-            <a href="{{ url_for('assignments') }}" class="btn btn-secondary">取消</a>
-        </div>
-    </form>
+    </div>
 </div>
 
 {% if assignment %}
-<div class="card">
-    <h2 class="card-title">学生提交情况</h2>
-    
-    <div class="status-summary">
-        <div class="status-card">
-            <div class="status-value">{{ submissions|length }}</div>
-            <div class="status-label">已提交</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-gradient-success text-white">
+                <h2 class="card-title mb-0"><i class="fas fa-users"></i> 学生提交情况</h2>
+            </div>
+            <div class="card-body">
+                <div class="submission-stats mb-4">
+                    <div class="stat-card">
+                        <div class="stat-card-icon bg-success">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="stat-card-content">
+                            <div class="stat-value">{{ submissions|length }}</div>
+                            <div class="stat-label">已提交</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-card-icon bg-warning">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="stat-card-content">
+                            <div class="stat-value">{{ assignment.class_obj.students|length - submissions|length }}</div>
+                            <div class="stat-label">未提交</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-card-icon bg-info">
+                            <i class="fas fa-percent"></i>
+                        </div>
+                        <div class="stat-card-content">
+                            <div class="stat-value">{{ (submissions|length / assignment.class_obj.students|length * 100)|round|int if assignment.class_obj.students|length > 0 else 0 }}%</div>
+                            <div class="stat-label">提交率</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead class="thead-light">
+                            <tr>
+                                <th width="25%">学生</th>
+                                <th width="20%">提交状态</th>
+                                <th width="25%">提交时间</th>
+                                <th width="15%">文件数量</th>
+                                <th width="15%">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student in assignment.class_obj.students %}
+                            <tr>
+                                <td>{{ student.username }}</td>
+                                {% set submission = submissions_by_student.get(student.id) %}
+                                {% if submission %}
+                                <td><span class="badge badge-success">已提交</span></td>
+                                <td>{{ submission.created_at }}</td>
+                                <td>{{ submission.files|length }}</td>
+                                <td>
+                                    <a href="{{ url_for('view_submission', submission_id=submission.id) }}" class="btn btn-info btn-sm">
+                                        <i class="fas fa-eye"></i> 查看
+                                    </a>
+                                </td>
+                                {% else %}
+                                <td><span class="badge badge-warning">未提交</span></td>
+                                <td>-</td>
+                                <td>0</td>
+                                <td>-</td>
+                                {% endif %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="mt-4 text-right">
+                    <!-- 在这里添加其他按钮，如果需要的话 -->
+                </div>
+            </div>
         </div>
-        
-        <div class="status-card">
-            <div class="status-value">{{ assignment.class.students|length - submissions|length }}</div>
-            <div class="status-label">未提交</div>
-        </div>
-        
-        <div class="status-card">
-            <div class="status-value">{{ (submissions|length / assignment.class.students|length * 100)|round|int if assignment.class.students|length > 0 else 0 }}%</div>
-            <div class="status-label">提交率</div>
-        </div>
-    </div>
-    
-    <table class="table">
-        <thead>
-            <tr>
-                <th>学生</th>
-                <th>提交状态</th>
-                <th>提交时间</th>
-                <th>文件数量</th>
-                <th>操作</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for student in assignment.class.students %}
-            <tr>
-                <td>{{ student.username }}</td>
-                {% set submission = submissions_by_student.get(student.id) %}
-                {% if submission %}
-                <td><span class="status-badge status-submitted">已提交</span></td>
-                <td>{{ submission.created_at }}</td>
-                <td>{{ submission.files|length }}</td>
-                <td>
-                    <a href="{{ url_for('view_submission', submission_id=submission.id) }}" class="btn btn-secondary">查看</a>
-                </td>
-                {% else %}
-                <td><span class="status-badge status-pending">未提交</span></td>
-                <td>-</td>
-                <td>0</td>
-                <td>-</td>
-                {% endif %}
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    
-    <div class="export-options">
-        <a href="{{ url_for('export_submissions', assignment_id=assignment.id, format='csv') }}" class="btn btn-secondary">
-            <i class="fas fa-file-csv"></i> 导出为CSV
-        </a>
-        <a href="{{ url_for('export_submissions', assignment_id=assignment.id, format='excel') }}" class="btn btn-secondary">
-            <i class="fas fa-file-excel"></i> 导出为Excel
-        </a>
     </div>
 </div>
 {% endif %}
+
+<style>
+.bg-gradient-primary {
+    background: linear-gradient(45deg, #4361ee, #3f37c9);
+}
+
+.bg-gradient-success {
+    background: linear-gradient(45deg, #198754, #10a19d);
+}
+
+.card {
+    border: none;
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.card-header {
+    border-top-left-radius: 0.5rem;
+    border-top-right-radius: 0.5rem;
+    padding: 1rem 1.25rem;
+}
+
+.card-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.card-title i {
+    margin-right: 0.5rem;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.page-header h1 {
+    margin-bottom: 0;
+    font-size: 1.8rem;
+}
+
+.page-header h1 i {
+    margin-right: 0.75rem;
+}
+
+.badge {
+    padding: 0.4em 0.65em;
+    font-size: 0.85em;
+    font-weight: 600;
+}
+
+.badge-success {
+    background-color: #198754;
+}
+
+.badge-warning {
+    background-color: #dc3500;
+    color: #fff;
+}
+
+.submission-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    flex: 1;
+    min-width: 200px;
+    display: flex;
+    align-items: center;
+    padding: 0;
+    transition: all 0.3s;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.stat-card-icon {
+    padding: 1.5rem;
+    font-size: 2rem;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bg-success {
+    background-color: #198754;
+}
+
+.bg-warning {
+    background-color: #dc3500;
+}
+
+.bg-info {
+    background-color: #0a58ca;
+}
+
+.stat-card-content {
+    padding: 1rem 1.5rem;
+    flex: 1;
+}
+
+.stat-value {
+    font-size: 1.8rem;
+    font-weight: bold;
+    margin-bottom: 0.3rem;
+    color: #1a1a1a;
+}
+
+.stat-label {
+    color: #495057;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.thead-light th {
+    background-color: #f1f3f5;
+    color: #1a1a1a;
+    font-weight: 600;
+}
+
+/* 按钮样式增强 */
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    border-radius: 0.3rem;
+    font-weight: 600;
+}
+
+.btn-info {
+    background-color: #0a58ca;
+    color: white;
+}
+
+.btn-info:hover {
+    background-color: #0a4fb8;
+}
+</style>
 {% endblock %}
 
 {% block extra_scripts %}

@@ -2,67 +2,126 @@
 
 {% block title %}仪表盘 - 文件上传系统{% endblock %}
 
-{% block content %}
-<h1>欢迎, {{ user.username }}</h1>
+{% block extra_head %}
+<style>
+    .section-title {
+        font-size: 1.4rem;
+        color: var(--primary-color);
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        border-bottom: 2px solid var(--border-color);
+        padding-bottom: 0.8rem;
+    }
+    
+    .section-title i {
+        margin-right: 0.75rem;
+        color: var(--primary-color);
+    }
+    
+    .card {
+        margin-top: 0;
+    }
+    
+    .card .card-header {
+        background-color: rgba(67, 97, 238, 0.05);
+    }
+    
+    .card-title {
+        display: flex;
+        align-items: center;
+    }
+    
+    .card-title i {
+        margin-right: 0.75rem;
+    }
+    
+    .mt-3 {
+        margin-top: 1rem;
+    }
+    
+    .text-right {
+        text-align: right;
+    }
+</style>
+{% endblock %}
 
+{% block content %}
 <!-- 管理员仪表盘 -->
 {% if user.role == 'admin' %}
 <div class="dashboard-stats">
     <div class="stat-card">
-        <i class="fas fa-users"></i>
-        <div>
+        <div class="stat-card-icon">
+            <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-card-content">
             <div class="stat-value">{{ stats.users_count }}</div>
             <div class="stat-label">用户数量</div>
         </div>
     </div>
     
     <div class="stat-card">
-        <i class="fas fa-chalkboard"></i>
-        <div>
+        <div class="stat-card-icon">
+            <i class="fas fa-chalkboard"></i>
+        </div>
+        <div class="stat-card-content">
             <div class="stat-value">{{ stats.classes_count }}</div>
             <div class="stat-label">班级数量</div>
         </div>
     </div>
     
     <div class="stat-card">
-        <i class="fas fa-book"></i>
-        <div>
+        <div class="stat-card-icon">
+            <i class="fas fa-book"></i>
+        </div>
+        <div class="stat-card-content">
             <div class="stat-value">{{ stats.courses_count }}</div>
             <div class="stat-label">课程数量</div>
         </div>
     </div>
     
     <div class="stat-card">
-        <i class="fas fa-file-upload"></i>
-        <div>
+        <div class="stat-card-icon">
+            <i class="fas fa-file-upload"></i>
+        </div>
+        <div class="stat-card-content">
             <div class="stat-value">{{ stats.uploads_count }}</div>
             <div class="stat-label">文件上传数量</div>
         </div>
     </div>
 </div>
 
+<h2 class="section-title"><i class="fas fa-user-plus"></i> 最近创建的用户</h2>
 <div class="row">
     <div class="card">
-        <h2 class="card-title">最近创建的用户</h2>
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>用户名</th>
-                    <th>角色</th>
-                    <th>创建时间</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for u in recent_users %}
-                <tr>
-                    <td>{{ u.username }}</td>
-                    <td>{{ u.role }}</td>
-                    <td>{{ u.created_at }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        <a href="{{ url_for('admin_panel') }}" class="btn">管理所有用户</a>
+        <div class="card-header">
+            <h2 class="card-title"><i class="fas fa-users"></i> 用户列表</h2>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>用户名</th>
+                            <th>角色</th>
+                            <th>创建时间</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in recent_users %}
+                        <tr>
+                            <td>{{ u.username }}</td>
+                            <td>{{ u.role }}</td>
+                            <td>{{ u.created_at }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="text-right mt-3">
+                <a href="{{ url_for('admin_panel') }}" class="btn btn-primary">管理所有用户</a>
+            </div>
+        </div>
     </div>
 </div>
 {% endif %}
@@ -71,32 +130,40 @@
 {% if user.role == 'teacher' %}
 <div class="dashboard-stats">
     <div class="stat-card">
-        <i class="fas fa-chalkboard"></i>
-        <div>
+        <div class="stat-card-icon">
+            <i class="fas fa-chalkboard"></i>
+        </div>
+        <div class="stat-card-content">
             <div class="stat-value">{{ stats.my_classes_count }}</div>
             <div class="stat-label">我的班级</div>
         </div>
     </div>
     
     <div class="stat-card">
-        <i class="fas fa-book"></i>
-        <div>
+        <div class="stat-card-icon">
+            <i class="fas fa-book"></i>
+        </div>
+        <div class="stat-card-content">
             <div class="stat-value">{{ stats.my_courses_count }}</div>
             <div class="stat-label">我的课程</div>
         </div>
     </div>
     
     <div class="stat-card">
-        <i class="fas fa-tasks"></i>
-        <div>
+        <div class="stat-card-icon">
+            <i class="fas fa-tasks"></i>
+        </div>
+        <div class="stat-card-content">
             <div class="stat-value">{{ stats.my_assignments_count }}</div>
             <div class="stat-label">我的作业</div>
         </div>
     </div>
     
     <div class="stat-card">
-        <i class="fas fa-check-circle"></i>
-        <div>
+        <div class="stat-card-icon">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="stat-card-content">
             <div class="stat-value">{{ stats.student_submissions_count }}</div>
             <div class="stat-label">学生提交量</div>
         </div>
@@ -105,55 +172,67 @@
 
 <div class="row">
     <div class="card">
-        <h2 class="card-title">我的班级</h2>
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>班级名称</th>
-                    <th>学生数量</th>
-                    <th>相关课程</th>
-                    <th>操作</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for class in teacher_classes %}
-                <tr>
-                    <td>{{ class.name }}</td>
-                    <td>{{ class.students|length }}</td>
-                    <td>{{ class.courses|length }}</td>
-                    <td>
-                        <a href="{{ url_for('view_class', class_id=class.id) }}" class="btn btn-secondary">查看</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        <a href="{{ url_for('create_class') }}" class="btn">创建新班级</a>
+        <div class="card-header">
+            <h2 class="card-title"><i class="fas fa-chalkboard"></i> 我的班级</h2>
+        </div>
+        <div class="card-body">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>班级名称</th>
+                        <th>学生数量</th>
+                        <th>相关课程</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for class in teacher_classes %}
+                    <tr>
+                        <td>{{ class.name }}</td>
+                        <td>{{ class.students|length }}</td>
+                        <td>{{ class.courses|length }}</td>
+                        <td>
+                            <a href="{{ url_for('view_class', class_id=class.id) }}" class="btn btn-secondary">查看</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="text-right mt-3">
+                <a href="{{ url_for('create_class') }}" class="btn btn-primary">创建新班级</a>
+            </div>
+        </div>
     </div>
     
     <div class="card">
-        <h2 class="card-title">最近的作业</h2>
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>作业名称</th>
-                    <th>班级</th>
-                    <th>截止日期</th>
-                    <th>提交状态</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for assignment in recent_assignments %}
-                <tr>
-                    <td>{{ assignment.title }}</td>
-                    <td>{{ assignment.class.name }}</td>
-                    <td>{{ assignment.due_date }}</td>
-                    <td>{{ assignment.submissions_count }}/{{ assignment.total_students }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        <a href="{{ url_for('create_assignment') }}" class="btn">创建新作业</a>
+        <div class="card-header">
+            <h2 class="card-title"><i class="fas fa-tasks"></i> 最近的作业</h2>
+        </div>
+        <div class="card-body">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>作业名称</th>
+                        <th>班级</th>
+                        <th>截止日期</th>
+                        <th>提交状态</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for assignment in recent_assignments %}
+                    <tr>
+                        <td>{{ assignment.title }}</td>
+                        <td>{{ assignment.class_obj.name }}</td>
+                        <td>{{ assignment.due_date }}</td>
+                        <td>{{ assignment.submissions_count }}/{{ assignment.total_students }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="text-right mt-3">
+                <a href="{{ url_for('create_assignment') }}" class="btn btn-primary">创建新作业</a>
+            </div>
+        </div>
     </div>
 </div>
 {% endif %}
@@ -162,32 +241,40 @@
 {% if user.role == 'student' %}
 <div class="dashboard-stats">
     <div class="stat-card">
-        <i class="fas fa-chalkboard"></i>
-        <div>
+        <div class="stat-card-icon">
+            <i class="fas fa-chalkboard"></i>
+        </div>
+        <div class="stat-card-content">
             <div class="stat-value">{{ stats.my_classes_count }}</div>
             <div class="stat-label">我的班级</div>
         </div>
     </div>
     
     <div class="stat-card">
-        <i class="fas fa-tasks"></i>
-        <div>
+        <div class="stat-card-icon">
+            <i class="fas fa-tasks"></i>
+        </div>
+        <div class="stat-card-content">
             <div class="stat-value">{{ stats.assignments_count }}</div>
             <div class="stat-label">待完成作业</div>
         </div>
     </div>
     
     <div class="stat-card">
-        <i class="fas fa-check-circle"></i>
-        <div>
+        <div class="stat-card-icon">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="stat-card-content">
             <div class="stat-value">{{ stats.completed_assignments }}</div>
             <div class="stat-label">已完成作业</div>
         </div>
     </div>
     
     <div class="stat-card">
-        <i class="fas fa-file-upload"></i>
-        <div>
+        <div class="stat-card-icon">
+            <i class="fas fa-file-upload"></i>
+        </div>
+        <div class="stat-card-content">
             <div class="stat-value">{{ stats.uploads_count }}</div>
             <div class="stat-label">上传文件数</div>
         </div>
@@ -195,39 +282,43 @@
 </div>
 
 <div class="card">
-    <h2 class="card-title">待完成作业</h2>
-    <table class="table">
-        <thead>
-            <tr>
-                <th>作业名称</th>
-                <th>课程</th>
-                <th>发布日期</th>
-                <th>截止日期</th>
-                <th>状态</th>
-                <th>操作</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for assignment in pending_assignments %}
-            <tr>
-                <td>{{ assignment.title }}</td>
-                <td>{{ assignment.course.name }}</td>
-                <td>{{ assignment.created_at }}</td>
-                <td>{{ assignment.due_date }}</td>
-                <td>
-                    {% if assignment.status == 'pending' %}
-                    <span class="status-badge status-pending">待完成</span>
-                    {% elif assignment.status == 'submitted' %}
-                    <span class="status-badge status-submitted">已提交</span>
-                    {% endif %}
-                </td>
-                <td>
-                    <a href="{{ url_for('view_assignment', assignment_id=assignment.id) }}" class="btn btn-secondary">查看</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="card-header">
+        <h2 class="card-title"><i class="fas fa-tasks"></i> 待完成作业</h2>
+    </div>
+    <div class="card-body">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>作业名称</th>
+                    <th>课程</th>
+                    <th>发布日期</th>
+                    <th>截止日期</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for assignment in pending_assignments %}
+                <tr>
+                    <td>{{ assignment.title }}</td>
+                    <td>{{ assignment.course.name }}</td>
+                    <td>{{ assignment.created_at }}</td>
+                    <td>{{ assignment.due_date }}</td>
+                    <td>
+                        {% if assignment.status == 'pending' %}
+                        <span class="status-badge status-pending">待完成</span>
+                        {% elif assignment.status == 'submitted' %}
+                        <span class="status-badge status-submitted">已提交</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('view_assignment', assignment_id=assignment.id) }}" class="btn btn-secondary">查看</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 {% endif %}
 {% endblock %} 

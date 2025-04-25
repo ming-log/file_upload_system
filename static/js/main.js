@@ -16,6 +16,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 初始化删除确认功能
     initDeleteConfirmation();
+    
+    // 初始化描述单元格的tooltip功能
+    initDescriptionTooltips();
 });
 
 // 文件上传功能
@@ -365,4 +368,66 @@ function initDeleteConfirmation() {
             });
         });
     });
+}
+
+// 为描述单元格添加悬停显示完整内容的功能
+function initDescriptionTooltips() {
+    console.log("初始化描述气泡功能");
+    const descriptionCells = document.querySelectorAll('.description-cell');
+    console.log("找到描述单元格:", descriptionCells.length);
+    
+    // 创建一个全局的tooltip元素
+    let tooltip = document.querySelector('.description-tooltip');
+    if (!tooltip) {
+        tooltip = document.createElement('div');
+        tooltip.className = 'description-tooltip';
+        document.body.appendChild(tooltip);
+    }
+    
+    descriptionCells.forEach((cell, index) => {
+        const fullText = cell.getAttribute('data-description');
+        
+        // 鼠标进入显示tooltip
+        cell.addEventListener('mouseenter', function(e) {
+            // 检查文本是否被截断
+            const isTruncated = this.offsetWidth < this.scrollWidth;
+            console.log(`单元格 ${index + 1} 是否截断:`, isTruncated, 
+                      `(offsetWidth: ${this.offsetWidth}, scrollWidth: ${this.scrollWidth})`);
+            
+            if (isTruncated) {
+                tooltip.textContent = fullText;
+                
+                // 获取单元格的位置
+                const rect = this.getBoundingClientRect();
+                
+                // 设置tooltip位置 - 相对于视口
+                tooltip.style.left = rect.left + 'px';
+                tooltip.style.top = (rect.bottom + 5) + 'px'; // 5px 间距
+                
+                // 检查右侧是否有足够空间，如果没有则左对齐
+                const tooltipWidth = Math.min(400, Math.max(200, rect.width));
+                if (rect.left + tooltipWidth > window.innerWidth) {
+                    tooltip.style.left = (window.innerWidth - tooltipWidth - 10) + 'px';
+                }
+                
+                tooltip.style.display = 'block';
+                console.log(`显示气泡在位置: 左 ${tooltip.style.left}, 上 ${tooltip.style.top}`);
+            }
+        });
+        
+        // 鼠标离开隐藏tooltip
+        cell.addEventListener('mouseleave', function() {
+            tooltip.style.display = 'none';
+        });
+    });
+    
+    // 确保滚动时气泡隐藏
+    window.addEventListener('scroll', function() {
+        tooltip.style.display = 'none';
+    });
+}
+
+// 简化检测文本截断的方法
+function isTextTruncated(element) {
+    return element.offsetWidth < element.scrollWidth;
 } 

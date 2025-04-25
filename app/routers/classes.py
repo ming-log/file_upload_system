@@ -224,37 +224,61 @@ async def import_students(
     if class_obj.teacher_id != current_user.id and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="无权修改此班级")
     
-    # 读取并解析CSV文件
+    # 读取文件内容
     content = await students_file.read()
-    content = content.decode('utf-8')
-    csv_reader = csv.reader(io.StringIO(content))
     
-    # 跳过标题行
-    next(csv_reader)
+    # 尝试多种编码格式解码
+    encodings = ['utf-8', 'gbk', 'gb2312', 'gb18030', 'latin1']
+    decoded_content = None
     
-    # 导入学生
-    for row in csv_reader:
-        if len(row) >= 2:
-            username, password = row[0], row[1]
-            
-            # 检查学生是否已存在
-            student = db.query(User).filter(User.username == username).first()
-            if not student:
-                # 创建新学生
-                hashed_password = get_password_hash(password)
-                student = User(
-                    username=username,
-                    hashed_password=hashed_password,
-                    role="student"
-                )
-                db.add(student)
-                db.commit()
-                db.refresh(student)
-            
-            # 检查学生是否已在班级中
-            if student not in class_obj.students:
-                class_obj.students.append(student)
+    for encoding in encodings:
+        try:
+            decoded_content = content.decode(encoding)
+            break
+        except UnicodeDecodeError:
+            continue
     
-    db.commit()
+    if decoded_content is None:
+        raise HTTPException(
+            status_code=400, 
+            detail="无法解码文件内容。请确保文件使用UTF-8、GBK、GB2312或GB18030编码。"
+        )
     
-    return RedirectResponse(url=f"/classes/{class_id}", status_code=303) 
+    try:
+        csv_reader = csv.reader(io.StringIO(decoded_content))
+        
+        # 跳过标题行
+        next(csv_reader)
+        
+        # 导入学生
+        for row in csv_reader:
+            if len(row) >= 2:
+                username, password = row[0], row[1]
+                
+                # 检查学生是否已存在
+                student = db.query(User).filter(User.username == username).first()
+                if not student:
+                    # 创建新学生
+                    hashed_password = get_password_hash(password)
+                    student = User(
+                        username=username,
+                        hashed_password=hashed_password,
+                        role="student"
+                    )
+                    db.add(student)
+                    db.commit()
+                    db.refresh(student)
+                
+                # 检查学生是否已在班级中
+                if student not in class_obj.students:
+                    class_obj.students.append(student)
+        
+        db.commit()
+        
+        return RedirectResponse(url=f"/classes/{class_id}", status_code=303)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail=f"导入过程中出错: {str(e)}"
+        ) 

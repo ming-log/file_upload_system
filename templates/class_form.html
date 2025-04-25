@@ -3,151 +3,353 @@
 {% block title %}{% if class %}编辑班级{% else %}创建班级{% endif %} - 文件上传系统{% endblock %}
 
 {% block content %}
-<h1>{% if class %}编辑班级{% else %}创建班级{% endif %}</h1>
+<div class="page-header">
+    <h1><i class="fas fa-chalkboard"></i> {% if class %}编辑班级: {{ class.name }}{% else %}创建新班级{% endif %}</h1>
+    <a href="{{ url_for('classes') }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> 返回班级列表
+    </a>
+</div>
 
-<div class="card">
-    <h2 class="card-title">班级信息</h2>
-    <form action="{% if class %}{{ url_for('update_class', class_id=class.id) }}{% else %}{{ url_for('create_class') }}{% endif %}" method="post" class="needs-validation">
-        <div class="form-group">
-            <label for="class_name">班级名称</label>
-            <input type="text" id="class_name" name="class_name" value="{{ class.name if class else '' }}" required>
-        </div>
-        
-        <div class="form-group">
-            <label for="description">班级描述</label>
-            <textarea id="description" name="description" rows="3">{{ class.description if class else '' }}</textarea>
-        </div>
-        
-        <div class="form-group">
-            <label>关联课程</label>
-            <div class="checkbox-group">
-                {% for course in courses %}
-                <div class="checkbox-item">
-                    <input type="checkbox" id="course-{{ course.id }}" name="courses" value="{{ course.id }}" 
-                        {% if class and course.id in class.course_ids %}checked{% endif %}>
-                    <label for="course-{{ course.id }}">{{ course.name }}</label>
-                </div>
-                {% endfor %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-gradient-primary text-white">
+                <h2 class="card-title mb-0"><i class="fas fa-info-circle"></i> 班级基本信息</h2>
             </div>
-            {% if not courses %}
-            <p class="form-hint">没有可用的课程。请先<a href="{{ url_for('create_course') }}">创建课程</a>.</p>
-            {% endif %}
+            <div class="card-body">
+                <form action="{% if class %}{{ url_for('update_class', class_id=class.id) }}{% else %}{{ url_for('create_class') }}{% endif %}" method="post" class="needs-validation">
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="class_name">班级名称</label>
+                            <input type="text" id="class_name" name="class_name" class="form-control" value="{{ class.name if class else '' }}" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="description">班级描述</label>
+                        <textarea id="description" name="description" rows="3" class="form-control">{{ class.description if class else '' }}</textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>关联课程</label>
+                        <div class="checkbox-group">
+                            {% for course in courses %}
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" class="custom-control-input" id="course-{{ course.id }}" name="courses" value="{{ course.id }}" 
+                                    {% if class and course.id in class.course_ids %}checked{% endif %}>
+                                <label class="custom-control-label" for="course-{{ course.id }}">{{ course.name }}</label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% if not courses %}
+                        <p class="form-hint text-muted mt-2">没有可用的课程。请先<a href="{{ url_for('create_course') }}">创建课程</a>.</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group mt-4 text-right">
+                        <a href="{{ url_for('classes') }}" class="btn btn-light mr-2">取消</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> 保存班级
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
-        
-        <div class="form-group">
-            <button type="submit" class="btn">保存班级</button>
-            <a href="{{ url_for('classes') }}" class="btn btn-secondary">取消</a>
-        </div>
-    </form>
+    </div>
 </div>
 
 {% if class %}
-<div class="card">
-    <h2 class="card-title">学生管理</h2>
-    
-    <div class="students-section">
-        <div class="current-students">
-            <h3>当前学生</h3>
-            {% if class.students %}
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>用户名</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for student in class.students %}
-                    <tr>
-                        <td>{{ student.id }}</td>
-                        <td>{{ student.username }}</td>
-                        <td>
-                            <form action="{{ url_for('remove_student_from_class', class_id=class.id, student_id=student.id) }}" method="post" style="display: inline;">
-                                <button type="submit" class="btn btn-danger">移除</button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            {% else %}
-            <p>该班级暂无学生。</p>
-            {% endif %}
-        </div>
-        
-        <div class="add-students">
-            <h3>添加学生</h3>
-            <div class="add-student-methods">
-                <div class="card-tab active" data-target="individual-add">单个添加</div>
-                <div class="card-tab" data-target="batch-add">批量导入</div>
+<!-- 学生管理区域 -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-gradient-success text-white">
+                <h2 class="card-title mb-0"><i class="fas fa-user-graduate"></i> 学生管理</h2>
             </div>
-            
-            <div id="individual-add" class="add-method">
-                <form action="{{ url_for('add_student_to_class', class_id=class.id) }}" method="post" class="needs-validation">
-                    <div class="form-group">
-                        <label for="student_id">选择学生</label>
-                        <select id="student_id" name="student_id" required>
-                            <option value="">-- 请选择 --</option>
-                            {% for student in available_students %}
-                            <option value="{{ student.id }}">{{ student.username }}</option>
-                            {% endfor %}
-                        </select>
+            <div class="card-body pb-0">
+                <!-- 当前学生列表 -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3 class="h5 mb-0">
+                            <i class="fas fa-users"></i> 当前学生
+                            <span class="badge badge-primary">{{ class.students|length }}</span>
+                        </h3>
+                        <button type="button" class="btn btn-primary" id="showAddStudentBtn">
+                            <i class="fas fa-user-plus"></i> 添加学生
+                        </button>
                     </div>
                     
-                    <div class="form-group">
-                        <button type="submit" class="btn">添加学生</button>
+                    {% if class.students %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th width="10%">ID</th>
+                                    <th width="70%">用户名</th>
+                                    <th width="20%">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student in class.students %}
+                                <tr>
+                                    <td>{{ student.id }}</td>
+                                    <td>{{ student.username }}</td>
+                                    <td>
+                                        <form action="{{ url_for('remove_student_from_class', class_id=class.id, student_id=student.id) }}" method="post" style="display: inline;">
+                                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('确定要移除该学生吗？');">
+                                                <i class="fas fa-user-minus"></i> 移除
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
-                </form>
-            </div>
-            
-            <div id="batch-add" class="add-method" style="display: none;">
-                <form action="{{ url_for('import_students', class_id=class.id) }}" method="post" enctype="multipart/form-data" class="needs-validation">
-                    <div class="form-group">
-                        <label for="students_file">学生名单 (CSV文件)</label>
-                        <input type="file" id="students_file" name="students_file" accept=".csv" required>
-                        <small>CSV文件格式: 用户名,密码</small>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> 该班级暂无学生。请点击"添加学生"按钮添加学生。
                     </div>
-                    
-                    <div class="form-group">
-                        <button type="submit" class="btn">导入学生</button>
-                    </div>
-                </form>
+                    {% endif %}
+                </div>
                 
-                <div class="template-download">
-                    <a href="{{ url_for('download_student_template') }}" class="btn btn-secondary">
-                        <i class="fas fa-download"></i> 下载模板
-                    </a>
+                <!-- 添加学生区域 (默认隐藏) -->
+                <div id="addStudentSection" class="mb-4" style="display: none;">
+                    <div class="card border-top">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-12">
+                                    <!-- 添加学生选项按钮 -->
+                                    <div class="add-student-tabs mb-4">
+                                        <div class="btn-group w-100" role="group">
+                                            <button type="button" class="btn btn-primary active" id="single-add-btn" data-target="single-add">
+                                                <i class="fas fa-user-plus"></i> 单个添加
+                                            </button>
+                                            <button type="button" class="btn btn-outline-primary" id="batch-add-btn" data-target="batch-add">
+                                                <i class="fas fa-file-import"></i> 批量导入
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 单个添加表单 -->
+                                    <div class="add-method active" id="single-add">
+                                        <form action="{{ url_for('add_student_to_class', class_id=class.id) }}" method="post">
+                                            <div class="form-group">
+                                                <label for="student_id">选择学生</label>
+                                                <select id="student_id" name="student_id" class="form-control" required>
+                                                    <option value="">-- 请选择 --</option>
+                                                    {% for student in available_students %}
+                                                    <option value="{{ student.id }}">{{ student.username }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            
+                                            <div class="form-group text-center mb-0">
+                                                <button type="submit" class="btn btn-success">
+                                                    <i class="fas fa-user-plus"></i> 添加学生
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                    
+                                    <!-- 批量导入表单 -->
+                                    <div class="add-method" id="batch-add" style="display: none;">
+                                        <form action="{{ url_for('import_students', class_id=class.id) }}" method="post" enctype="multipart/form-data">
+                                            <div class="form-group">
+                                                <label>学生名单 (CSV文件)</label>
+                                                <div class="custom-file">
+                                                    <input type="file" class="custom-file-input" id="students_file" name="students_file" accept=".csv" required>
+                                                    <label class="custom-file-label" for="students_file">选择文件...</label>
+                                                </div>
+                                                <small class="form-text text-muted mt-2">
+                                                    <i class="fas fa-info-circle"></i> CSV文件格式: 用户名,密码 (确保使用UTF-8编码)
+                                                </small>
+                                            </div>
+                                            
+                                            <div class="form-group text-center mb-0">
+                                                <button type="submit" class="btn btn-success">
+                                                    <i class="fas fa-file-import"></i> 导入学生
+                                                </button>
+                                                <a href="{{ url_for('download_student_template') }}" class="btn btn-outline-secondary ml-2">
+                                                    <i class="fas fa-download"></i> 下载模板
+                                                </a>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 {% endif %}
+
+<style>
+.bg-gradient-primary {
+    background: linear-gradient(45deg, #4361ee, #3f37c9);
+}
+
+.bg-gradient-success {
+    background: linear-gradient(45deg, #0e9594, #10a19d);
+}
+
+.card {
+    border: none;
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.card-header {
+    border-top-left-radius: 0.5rem;
+    border-top-right-radius: 0.5rem;
+    padding: 1rem 1.25rem;
+}
+
+.card-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.card-title i {
+    margin-right: 0.5rem;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.page-header h1 {
+    margin-bottom: 0;
+    font-size: 1.8rem;
+}
+
+.page-header h1 i {
+    margin-right: 0.75rem;
+}
+
+/* 按钮组样式 */
+.btn-group {
+    display: flex;
+}
+
+.btn-group .btn {
+    flex: 1;
+    border-radius: 0;
+}
+
+.btn-group .btn:first-child {
+    border-top-left-radius: 0.25rem;
+    border-bottom-left-radius: 0.25rem;
+}
+
+.btn-group .btn:last-child {
+    border-top-right-radius: 0.25rem;
+    border-bottom-right-radius: 0.25rem;
+}
+
+/* 表单样式 */
+.custom-file-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.custom-file-input:lang(zh-CN) ~ .custom-file-label::after {
+    content: "浏览";
+}
+
+/* 徽章样式 */
+.badge {
+    padding: 0.35em 0.65em;
+    font-size: 0.75em;
+    font-weight: 600;
+}
+
+/* 表格样式 */
+.table {
+    margin-bottom: 0;
+}
+
+/* 边框样式 */
+.border-top {
+    border-top: 1px solid #dee2e6 !important;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .btn-group .btn {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
+    }
+}
+</style>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // 添加学生标签页切换
-        const cardTabs = document.querySelectorAll('.card-tab');
+        // 文件上传输入框名称显示
+        const fileInput = document.getElementById('students_file');
+        if (fileInput) {
+            fileInput.addEventListener('change', function() {
+                const fileName = this.files[0]?.name || '选择文件...';
+                this.nextElementSibling.innerText = fileName;
+            });
+        }
+        
+        // 添加学生区域显示/隐藏
+        const showAddStudentBtn = document.getElementById('showAddStudentBtn');
+        const addStudentSection = document.getElementById('addStudentSection');
+        
+        if (showAddStudentBtn && addStudentSection) {
+            showAddStudentBtn.addEventListener('click', function() {
+                if (addStudentSection.style.display === 'none') {
+                    addStudentSection.style.display = 'block';
+                    showAddStudentBtn.innerHTML = '<i class="fas fa-times"></i> 取消添加';
+                    showAddStudentBtn.classList.replace('btn-primary', 'btn-secondary');
+                } else {
+                    addStudentSection.style.display = 'none';
+                    showAddStudentBtn.innerHTML = '<i class="fas fa-user-plus"></i> 添加学生';
+                    showAddStudentBtn.classList.replace('btn-secondary', 'btn-primary');
+                }
+            });
+        }
+        
+        // 单个添加和批量导入切换
+        const addMethodBtns = document.querySelectorAll('[data-target]');
         const addMethods = document.querySelectorAll('.add-method');
         
-        cardTabs.forEach(tab => {
-            tab.addEventListener('click', function() {
-                // 移除所有标签的活动状态
-                cardTabs.forEach(t => t.classList.remove('active'));
-                // 隐藏所有方法
-                addMethods.forEach(m => m.style.display = 'none');
+        addMethodBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const targetId = this.getAttribute('data-target');
                 
-                // 激活当前标签
+                // 更新按钮状态
+                addMethodBtns.forEach(b => {
+                    b.classList.remove('active');
+                    if (b.classList.contains('btn-primary')) {
+                        b.classList.replace('btn-primary', 'btn-outline-primary');
+                    }
+                });
+                
                 this.classList.add('active');
+                this.classList.replace('btn-outline-primary', 'btn-primary');
                 
-                // 显示对应的方法
-                const targetMethod = document.getElementById(this.dataset.target);
-                if (targetMethod) {
-                    targetMethod.style.display = 'block';
-                }
+                // 更新表单显示
+                addMethods.forEach(method => {
+                    method.style.display = 'none';
+                });
+                
+                document.getElementById(targetId).style.display = 'block';
             });
         });
     });

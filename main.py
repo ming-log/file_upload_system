@@ -1,4 +1,5 @@
 import os
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -17,40 +18,10 @@ Base.metadata.create_all(bind=engine)
 # 创建上传目录
 os.makedirs("app/uploads", exist_ok=True)
 
-# 创建FastAPI应用
-app = FastAPI(title="文件上传系统")
-
-# 添加CORS中间件
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# 挂载静态文件目录
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
-# Jinja2模板
-templates = Jinja2Templates(directory="templates")
-
-# 包含路由
-app.include_router(auth.router, tags=["认证"])
-app.include_router(users.router, tags=["用户管理"])
-app.include_router(classes.router, tags=["班级管理"])
-app.include_router(courses.router, tags=["课程管理"])
-app.include_router(assignments.router, tags=["作业管理"])
-app.include_router(dashboard.router, tags=["仪表盘"])
-
-# 根路由重定向到登录页面
-@app.get("/", response_class=HTMLResponse)
-async def root():
-    return RedirectResponse(url="/login")
-
-# 初始化管理员账号
-@app.on_event("startup")
-async def startup_event():
+# 定义lifespan上下文管理器
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 在应用启动时执行的代码
     db = next(get_db())
     try:
         # 检查是否已存在admin用户名
@@ -76,6 +47,56 @@ async def startup_event():
     except Exception as e:
         db.rollback()
         print(f"创建管理员账号时出错: {str(e)}")
+    
+    yield  # 这里是应用运行的地方
+    
+    # 在应用关闭时执行的代码（如果有的话）
+
+# 创建FastAPI应用
+app = FastAPI(title="文件上传系统", lifespan=lifespan)
+
+# 添加CORS中间件
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# 挂载静态文件目录
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Jinja2模板
+templates = Jinja2Templates(directory="templates")
+
+# 包含路由
+app.include_router(auth.router, tags=["认证"])
+app.include_router(users.router, tags=["用户管理"])
+app.include_router(classes.router, tags=["班级管理"])
+app.include_router(courses.router, tags=["课程管理"])
+app.include_router(assignments.router, tags=["作业管理"])
+app.include_router(dashboard.router, tags=["仪表盘"])
+
+# 根路由重定向到登录页面或仪表盘
+@app.get("/", response_class=HTMLResponse)
+async def root(request: Request):
+    # 检查用户是否已登录
+    # 在cookie中查找session_token
+    session_token = request.cookies.get("session_token")
+    if session_token:
+        try:
+            # 这里复用auth中的验证逻辑，但不抛出异常，只是检查
+            user = get_current_user(session_token)
+            if user:
+                # 用户已登录，重定向到仪表盘
+                return RedirectResponse(url="/dashboard")
+        except:
+            # 令牌无效，继续重定向到登录页面
+            pass
+    
+    # 用户未登录，重定向到登录页面
+    return RedirectResponse(url="/login")
 
 if __name__ == "__main__":
     import uvicorn

@@ -2,76 +2,707 @@
 
 {% block title %}文件上传 - {{ assignment.title }}{% endblock %}
 
+{% block extra_head %}
+<style>
+    .assignment-card {
+        background: linear-gradient(to right bottom, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7));
+        backdrop-filter: blur(10px);
+        border: none;
+        box-shadow: var(--shadow-md);
+        margin-bottom: 2rem;
+        transition: all 0.3s ease;
+    }
+    
+    .assignment-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid rgba(222, 226, 230, 0.5);
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .assignment-icon {
+        width: 50px;
+        height: 50px;
+        background: var(--gradient-blue);
+        color: white;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        box-shadow: 0 4px 10px rgba(67, 97, 238, 0.3);
+    }
+    
+    .assignment-title {
+        flex: 1;
+        margin: 0;
+        color: var(--primary-color);
+        font-size: 1.5rem;
+        font-weight: 600;
+    }
+    
+    .assignment-body {
+        padding: 1.5rem;
+    }
+    
+    .assignment-meta {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.2rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .meta-item {
+        background-color: rgba(248, 249, 250, 0.7);
+        padding: 1rem;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        transition: all 0.3s ease;
+    }
+    
+    .meta-item:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .meta-icon {
+        width: 36px;
+        height: 36px;
+        background: linear-gradient(135deg, rgba(67, 97, 238, 0.1), rgba(72, 191, 227, 0.1));
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 0.8rem;
+        color: var(--primary-color);
+    }
+    
+    .meta-label {
+        font-size: 0.85rem;
+        color: var(--text-light);
+        margin-bottom: 0.2rem;
+    }
+    
+    .meta-value {
+        font-weight: 600;
+        color: var(--text-color);
+    }
+    
+    .assignment-description {
+        background-color: rgba(248, 249, 250, 0.7);
+        padding: 1.2rem;
+        border-radius: 10px;
+        margin-bottom: 1.5rem;
+        border-left: 3px solid var(--primary-color);
+    }
+    
+    .description-label {
+        font-weight: 600;
+        color: var(--primary-color);
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+    }
+    
+    .description-label i {
+        margin-right: 0.5rem;
+    }
+    
+    .description-content {
+        color: var(--text-color);
+        line-height: 1.6;
+        white-space: pre-line;
+    }
+    
+    .deadline-warning {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding: 1rem;
+        border-radius: 10px;
+        background-color: rgba(255, 159, 28, 0.1);
+        border-left: 3px solid var(--warning-color);
+    }
+    
+    .deadline-warning i {
+        color: var(--warning-color);
+        margin-right: 0.8rem;
+        font-size: 1.2rem;
+    }
+    
+    .deadline-warning p {
+        margin: 0;
+        color: var(--text-color);
+    }
+    
+    .file-upload-container {
+        margin-top: 2rem;
+    }
+    
+    .upload-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: var(--text-color);
+        display: flex;
+        align-items: center;
+    }
+    
+    .upload-title i {
+        margin-right: 0.8rem;
+        color: var(--primary-color);
+    }
+    
+    .file-upload {
+        border: 2px dashed rgba(67, 97, 238, 0.3);
+        background-color: rgba(67, 97, 238, 0.03);
+        padding: 2.5rem;
+        transition: all 0.3s ease;
+    }
+    
+    .file-upload:hover, .file-upload.dragover {
+        background-color: rgba(67, 97, 238, 0.06);
+        border-color: var(--primary-color);
+        transform: translateY(-5px);
+    }
+    
+    .file-upload i {
+        font-size: 3.5rem;
+        margin-bottom: 1.2rem;
+    }
+    
+    .file-list {
+        margin-top: 1.5rem;
+    }
+    
+    .file-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.8rem 1rem;
+        background-color: white;
+        border-radius: 8px;
+        margin-bottom: 0.8rem;
+        box-shadow: var(--shadow-sm);
+        animation: slideIn 0.3s ease;
+        transition: all 0.3s ease;
+    }
+    
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .file-item:hover {
+        transform: translateX(5px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .file-item-left {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .file-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #e6f3ff, #dcf2fe);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--primary-color);
+        font-size: 1.2rem;
+        flex-shrink: 0;
+    }
+    
+    .file-icon.pdf {
+        background: linear-gradient(135deg, #ffe6e6, #ffdcdc);
+        color: #e71d36;
+    }
+    
+    .file-icon.doc {
+        background: linear-gradient(135deg, #e6ecff, #dce4fe);
+        color: #4361ee;
+    }
+    
+    .file-icon.image {
+        background: linear-gradient(135deg, #e6fff1, #dcfeef);
+        color: #2ec4b6;
+    }
+    
+    .file-icon.zip {
+        background: linear-gradient(135deg, #fff6e6, #fef3dc);
+        color: #ff9f1c;
+    }
+    
+    .file-name {
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .file-meta {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        color: var(--text-light);
+        font-size: 0.85rem;
+    }
+    
+    .file-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .file-action-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-download {
+        background-color: var(--primary-color);
+    }
+    
+    .btn-download:hover {
+        background-color: var(--primary-dark);
+        transform: translateY(-3px);
+    }
+    
+    .btn-delete {
+        background-color: #e71d36;
+    }
+    
+    .btn-delete:hover {
+        background-color: #c30f25;
+        transform: translateY(-3px);
+    }
+    
+    .upload-actions {
+        margin-top: 2rem;
+        display: flex;
+        justify-content: flex-end;
+    }
+    
+    .submit-btn {
+        padding: 0.8rem 2rem;
+        font-size: 1rem;
+    }
+    
+    .file-progress {
+        width: 100%;
+        height: 4px;
+        background-color: #f0f0f0;
+        border-radius: 2px;
+        margin-top: 0.5rem;
+        overflow: hidden;
+    }
+    
+    .progress-bar {
+        height: 100%;
+        background: var(--gradient-blue);
+        width: 0;
+        transition: width 0.3s ease;
+    }
+    
+    .success-animation {
+        margin: 2rem auto;
+        text-align: center;
+    }
+    
+    .success-icon {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(to right, #2ec4b6, #48bfe3);
+        color: white;
+        font-size: 2.5rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        box-shadow: 0 10px 20px rgba(46, 196, 182, 0.3);
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(46, 196, 182, 0.7);
+        }
+        70% {
+            box-shadow: 0 0 0 15px rgba(46, 196, 182, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(46, 196, 182, 0);
+        }
+    }
+    
+    .success-text {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-color);
+        margin-bottom: 0.5rem;
+    }
+    
+    .success-subtext {
+        color: var(--text-light);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="card">
-    <h2 class="card-title">作业: {{ assignment.title }}</h2>
-    
-    <div class="assignment-info">
-        <p><strong>课程:</strong> {{ assignment.course.name }}</p>
-        <p><strong>班级:</strong> {{ assignment.class.name }}</p>
-        <p><strong>截止日期:</strong> {{ assignment.due_date }}</p>
-        <p><strong>描述:</strong> {{ assignment.description }}</p>
+<div class="page-header">
+    <h1>作业提交</h1>
+    <a href="{{ url_for('my_assignments') }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> 返回作业列表
+    </a>
+</div>
+
+<div class="card assignment-card">
+    <div class="assignment-header">
+        <div class="assignment-icon">
+            <i class="fas fa-book"></i>
+        </div>
+        <h2 class="assignment-title">{{ assignment.title }}</h2>
     </div>
     
-    {% if assignment.status == 'submitted' %}
-    <div class="alert alert-success">
-        您已于 {{ submission.created_at }} 提交了此作业。
-    </div>
-    
-    <h3>已上传的文件:</h3>
-    <div class="file-list">
-        {% for file in submission.files %}
-        <div class="file-item">
-            <div>
-                <i class="fas fa-file"></i>
-                <span>{{ file.filename }}</span>
+    <div class="assignment-body">
+        <div class="assignment-meta">
+            <div class="meta-item">
+                <div class="meta-icon">
+                    <i class="fas fa-book"></i>
+                </div>
+                <div class="meta-content">
+                    <div class="meta-label">课程</div>
+                    <div class="meta-value">{{ assignment.course.name }}</div>
+                </div>
             </div>
-            <div>
-                <span class="file-size">{{ file.size }}</span>
-                <a href="{{ url_for('download_file', file_id=file.id) }}" class="btn-secondary">
-                    <i class="fas fa-download"></i>
-                </a>
+            
+            <div class="meta-item">
+                <div class="meta-icon">
+                    <i class="fas fa-chalkboard"></i>
+                </div>
+                <div class="meta-content">
+                    <div class="meta-label">班级</div>
+                    <div class="meta-value">{{ assignment.class_obj.name }}</div>
+                </div>
+            </div>
+            
+            <div class="meta-item">
+                <div class="meta-icon">
+                    <i class="fas fa-calendar"></i>
+                </div>
+                <div class="meta-content">
+                    <div class="meta-label">截止日期</div>
+                    <div class="meta-value">{{ assignment.due_date }}</div>
+                </div>
             </div>
         </div>
-        {% endfor %}
-    </div>
-    
-    {% if now < assignment.due_date %}
-    <form action="{{ url_for('upload_file', assignment_id=assignment.id) }}" method="post" enctype="multipart/form-data">
-        <h3>重新提交:</h3>
-        <div class="file-upload">
-            <i class="fas fa-cloud-upload-alt"></i>
-            <p>拖放文件到这里或点击上传</p>
-            <input type="file" name="files" multiple required>
+        
+        <div class="assignment-description">
+            <div class="description-label">
+                <i class="fas fa-file-alt"></i> 作业描述
+            </div>
+            <div class="description-content">{{ assignment.description }}</div>
+        </div>
+        
+        {% if now < assignment.due_date %}
+        <div class="deadline-warning">
+            <i class="fas fa-exclamation-circle"></i>
+            <p>请注意：本作业截止日期为 {{ assignment.due_date }}，请确保在截止日期前提交。</p>
+        </div>
+        {% else %}
+        <div class="deadline-warning" style="background-color: rgba(231, 29, 54, 0.1); border-left-color: #e71d36;">
+            <i class="fas fa-exclamation-triangle" style="color: #e71d36;"></i>
+            <p>注意：该作业已过截止日期，但您仍可以提交。</p>
+        </div>
+        {% endif %}
+        
+        {% if assignment.status == 'submitted' %}
+        <div class="success-animation">
+            <div class="success-icon">
+                <i class="fas fa-check"></i>
+            </div>
+            <div class="success-text">作业已提交</div>
+            <div class="success-subtext">您已于 {{ submission.created_at }} 成功提交此作业</div>
+        </div>
+        
+        <div class="upload-title">
+            <i class="fas fa-file-upload"></i> 已上传的文件
         </div>
         <div class="file-list">
-            <!-- 文件列表将通过JavaScript动态添加 -->
+            {% for file in submission.files %}
+            <div class="file-item">
+                <div class="file-item-left">
+                    {% set file_ext = file.filename.split('.')[-1].lower() %}
+                    <div class="file-icon {{ 'pdf' if file_ext == 'pdf' else 'doc' if file_ext in ['doc', 'docx'] else 'image' if file_ext in ['jpg', 'png', 'jpeg', 'gif'] else 'zip' if file_ext in ['zip', 'rar'] else '' }}">
+                        {% if file_ext == 'pdf' %}
+                        <i class="fas fa-file-pdf"></i>
+                        {% elif file_ext in ['doc', 'docx'] %}
+                        <i class="fas fa-file-word"></i>
+                        {% elif file_ext in ['jpg', 'png', 'jpeg', 'gif'] %}
+                        <i class="fas fa-file-image"></i>
+                        {% elif file_ext in ['zip', 'rar'] %}
+                        <i class="fas fa-file-archive"></i>
+                        {% else %}
+                        <i class="fas fa-file"></i>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <div class="file-name">{{ file.filename }}</div>
+                        <div class="file-meta">
+                            <span>{{ file.size }}</span>
+                            <span>·</span>
+                            <span>上传于 {{ file.created_at }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="file-actions">
+                    <a href="{{ url_for('download_file', file_id=file.id) }}" class="file-action-btn btn-download" title="下载">
+                        <i class="fas fa-download"></i>
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
         </div>
-        <button type="submit" class="btn">重新提交</button>
-    </form>
-    {% endif %}
-    
-    {% else %}
-    <form action="{{ url_for('upload_file', assignment_id=assignment.id) }}" method="post" enctype="multipart/form-data">
-        <div class="file-upload">
-            <i class="fas fa-cloud-upload-alt"></i>
-            <p>拖放文件到这里或点击上传</p>
-            <input type="file" name="files" multiple required>
+        
+        {% if now < assignment.due_date %}
+        <div class="file-upload-container">
+            <div class="upload-title">
+                <i class="fas fa-sync"></i> 重新提交
+            </div>
+            
+            <form action="{{ url_for('upload_assignment', assignment_id=assignment.id) }}" method="post" enctype="multipart/form-data" id="uploadForm">
+                <div class="file-upload" id="dropZone">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>拖放文件到这里或点击上传</p>
+                    <p class="small">支持的文件类型：PDF, Word, Excel, 图片等</p>
+                    <input type="file" name="files" multiple required id="fileInput">
+                </div>
+                
+                <div class="file-list" id="fileList">
+                    <!-- 文件列表将通过JavaScript动态添加 -->
+                </div>
+                
+                <div class="upload-actions">
+                    <button type="submit" class="btn btn-primary submit-btn" id="submitBtn">
+                        <i class="fas fa-paper-plane"></i> 重新提交
+                    </button>
+                </div>
+            </form>
         </div>
-        <div class="file-list">
-            <!-- 文件列表将通过JavaScript动态添加 -->
+        {% endif %}
+        
+        {% else %}
+        <div class="file-upload-container">
+            <div class="upload-title">
+                <i class="fas fa-cloud-upload-alt"></i> 上传文件
+            </div>
+            
+            <form action="{{ url_for('upload_assignment', assignment_id=assignment.id) }}" method="post" enctype="multipart/form-data" id="uploadForm">
+                <div class="file-upload" id="dropZone">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>拖放文件到这里或点击上传</p>
+                    <p class="small">支持的文件类型：PDF, Word, Excel, 图片等</p>
+                    <input type="file" name="files" multiple required id="fileInput">
+                </div>
+                
+                <div class="file-list" id="fileList">
+                    <!-- 文件列表将通过JavaScript动态添加 -->
+                </div>
+                
+                <div class="upload-actions">
+                    <button type="submit" class="btn btn-primary submit-btn" id="submitBtn">
+                        <i class="fas fa-paper-plane"></i> 提交作业
+                    </button>
+                </div>
+            </form>
         </div>
-        <button type="submit" class="btn">提交作业</button>
-    </form>
-    {% endif %}
+        {% endif %}
+    </div>
 </div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-    // 初始化文件上传界面
     document.addEventListener('DOMContentLoaded', function() {
-        initFileUpload();
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const uploadForm = document.getElementById('uploadForm');
+        const submitBtn = document.getElementById('submitBtn');
+        
+        // 拖放功能
+        if (dropZone) {
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, highlight, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, unhighlight, false);
+            });
+            
+            function highlight() {
+                dropZone.classList.add('dragover');
+            }
+            
+            function unhighlight() {
+                dropZone.classList.remove('dragover');
+            }
+            
+            dropZone.addEventListener('drop', handleDrop, false);
+            
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                fileInput.files = files;
+                updateFileList();
+            }
+            
+            // 文件选择器改变时更新文件列表
+            fileInput.addEventListener('change', updateFileList);
+            
+            function updateFileList() {
+                fileList.innerHTML = '';
+                
+                if (!fileInput.files.length) {
+                    return;
+                }
+                
+                for (let i = 0; i < fileInput.files.length; i++) {
+                    const file = fileInput.files[i];
+                    const fileSize = formatFileSize(file.size);
+                    const fileName = file.name;
+                    const fileExt = getFileExtension(fileName);
+                    
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    
+                    const fileIconClass = getFileIconClass(fileExt);
+                    const fileIconHTML = getFileIconHTML(fileExt);
+                    
+                    fileItem.innerHTML = `
+                        <div class="file-item-left">
+                            <div class="file-icon ${fileIconClass}">
+                                ${fileIconHTML}
+                            </div>
+                            <div>
+                                <div class="file-name">${fileName}</div>
+                                <div class="file-meta">
+                                    <span>${fileSize}</span>
+                                </div>
+                                <div class="file-progress">
+                                    <div class="progress-bar" style="width: 100%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="file-actions">
+                            <button type="button" class="file-action-btn btn-delete" data-index="${i}">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    `;
+                    
+                    fileList.appendChild(fileItem);
+                }
+                
+                // 添加删除按钮事件
+                document.querySelectorAll('.btn-delete').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        removeFile(parseInt(this.dataset.index));
+                    });
+                });
+            }
+            
+            function removeFile(index) {
+                const dt = new DataTransfer();
+                const { files } = fileInput;
+                
+                for (let i = 0; i < files.length; i++) {
+                    if (i !== index) {
+                        dt.items.add(files[i]);
+                    }
+                }
+                
+                fileInput.files = dt.files;
+                updateFileList();
+            }
+            
+            function formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+            
+            function getFileExtension(filename) {
+                return filename.split('.').pop().toLowerCase();
+            }
+            
+            function getFileIconClass(ext) {
+                if (ext === 'pdf') return 'pdf';
+                if (['doc', 'docx'].includes(ext)) return 'doc';
+                if (['jpg', 'png', 'jpeg', 'gif'].includes(ext)) return 'image';
+                if (['zip', 'rar'].includes(ext)) return 'zip';
+                return '';
+            }
+            
+            function getFileIconHTML(ext) {
+                if (ext === 'pdf') return '<i class="fas fa-file-pdf"></i>';
+                if (['doc', 'docx'].includes(ext)) return '<i class="fas fa-file-word"></i>';
+                if (['jpg', 'jpeg', 'png', 'gif'].includes(ext)) return '<i class="fas fa-file-image"></i>';
+                if (['zip', 'rar'].includes(ext)) return '<i class="fas fa-file-archive"></i>';
+                return '<i class="fas fa-file"></i>';
+            }
+            
+            // 提交表单
+            if (uploadForm) {
+                uploadForm.addEventListener('submit', function(e) {
+                    if (!fileInput.files.length) {
+                        e.preventDefault();
+                        alert('请选择至少一个文件上传');
+                        return;
+                    }
+                    
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 上传中...';
+                });
+            }
+        }
     });
 </script>
 {% endblock %} 

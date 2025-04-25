@@ -231,10 +231,6 @@ async def upload_file(
     if current_user not in assignment.class_obj.students:
         raise HTTPException(status_code=403, detail="无权提交此作业")
     
-    # 检查是否已经超过截止日期
-    if datetime.now() > assignment.due_date:
-        raise HTTPException(status_code=400, detail="已超过截止日期，无法提交")
-    
     # 检查是否已有提交，有则更新，无则创建
     submission = db.query(Submission).filter(
         Submission.assignment_id == assignment_id,

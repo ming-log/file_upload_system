@@ -28,11 +28,19 @@ async def list_courses(
 @router.get("/courses/create", response_class=HTMLResponse, name="create_course")
 async def create_course_page(
     request: Request,
-    current_user: User = Depends(teacher_required)
+    current_user: User = Depends(teacher_required),
+    db: Session = Depends(get_db)
 ):
+    # 获取教师创建的班级列表供选择
+    available_classes = db.query(Class).filter(Class.teacher_id == current_user.id).all()
+    
     return templates.TemplateResponse(
         "course_form.html",
-        {"request": request, "user": current_user}
+        {
+            "request": request, 
+            "user": current_user,
+            "available_classes": available_classes
+        }
     )
 
 @router.post("/courses/create", name="create_course")
@@ -41,6 +49,7 @@ async def create_course(
     course_code: str = Form(...),
     description: str = Form(None),
     semester: str = Form(...),
+    classes: List[int] = Form([]),
     current_user: User = Depends(teacher_required),
     db: Session = Depends(get_db)
 ):
@@ -55,6 +64,15 @@ async def create_course(
     db.add(new_course)
     db.commit()
     db.refresh(new_course)
+    
+    # 关联选择的班级
+    if classes:
+        for class_id in classes:
+            class_obj = db.query(Class).filter(Class.id == class_id).first()
+            if class_obj and class_obj.teacher_id == current_user.id:
+                new_course.classes.append(class_obj)
+        
+        db.commit()
     
     return RedirectResponse(url="/courses", status_code=303)
 
@@ -76,6 +94,12 @@ async def view_course(
     # 获取关联班级
     associated_classes = course.classes
     
+    # 获取可用于关联的班级（当前用户创建的，但尚未与此课程关联的班级）
+    available_classes = db.query(Class).filter(
+        Class.teacher_id == current_user.id,
+        ~Class.id.in_([c.id for c in associated_classes])
+    ).all()
+    
     # 获取关联作业
     course_assignments = course.assignments
     
@@ -91,6 +115,7 @@ async def view_course(
             "user": current_user, 
             "course": course,
             "associated_classes": associated_classes,
+            "available_classes": available_classes,
             "course_assignments": course_assignments
         }
     )
@@ -102,6 +127,7 @@ async def update_course(
     course_code: str = Form(...),
     description: str = Form(None),
     semester: str = Form(...),
+    classes: List[int] = Form([]),
     current_user: User = Depends(teacher_required),
     db: Session = Depends(get_db)
 ):
@@ -120,6 +146,65 @@ async def update_course(
     course.semester = semester
     
     db.commit()
+    
+    return RedirectResponse(url=f"/courses/{course_id}", status_code=303)
+
+@router.post("/courses/{course_id}/classes/add", name="add_class_to_course")
+async def add_class_to_course(
+    course_id: int,
+    class_id: int = Form(...),
+    current_user: User = Depends(teacher_required),
+    db: Session = Depends(get_db)
+):
+    course = db.query(Course).filter(Course.id == course_id).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="课程不存在")
+    
+    # 确保只有课程的创建者可以添加班级
+    if course.teacher_id != current_user.id and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="无权修改此课程")
+    
+    class_obj = db.query(Class).filter(Class.id == class_id).first()
+    if not class_obj:
+        raise HTTPException(status_code=404, detail="班级不存在")
+    
+    # 确保只能关联自己创建的班级
+    if class_obj.teacher_id != current_user.id and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="无权关联此班级")
+    
+    # 检查班级是否已关联到课程
+    if class_obj in course.classes:
+        raise HTTPException(status_code=400, detail="班级已关联到此课程")
+    
+    # 添加班级到课程
+    course.classes.append(class_obj)
+    db.commit()
+    
+    return RedirectResponse(url=f"/courses/{course_id}", status_code=303)
+
+@router.post("/courses/{course_id}/classes/{class_id}/remove", name="remove_class_from_course")
+async def remove_class_from_course(
+    course_id: int,
+    class_id: int,
+    current_user: User = Depends(teacher_required),
+    db: Session = Depends(get_db)
+):
+    course = db.query(Course).filter(Course.id == course_id).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="课程不存在")
+    
+    # 确保只有课程的创建者可以移除班级
+    if course.teacher_id != current_user.id and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="无权修改此课程")
+    
+    class_obj = db.query(Class).filter(Class.id == class_id).first()
+    if not class_obj:
+        raise HTTPException(status_code=404, detail="班级不存在")
+    
+    # 移除班级
+    if class_obj in course.classes:
+        course.classes.remove(class_obj)
+        db.commit()
     
     return RedirectResponse(url=f"/courses/{course_id}", status_code=303)
 

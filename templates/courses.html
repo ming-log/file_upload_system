@@ -32,7 +32,7 @@
                         <td>{{ course.name }}</td>
                         <td>{{ course.code }}</td>
                         <td>{{ course.semester }}</td>
-                        <td>{{ course.description or '无' }}</td>
+                        <td class="description-cell" data-description="{{ course.description or '无' }}" style="max-width: 250px; width: 250px;">{{ course.description or '无' }}</td>
                         <td>{{ course.classes|length }}</td>
                         <td>
                             <a href="{{ url_for('view_course', course_id=course.id) }}" class="btn btn-sm btn-info">
