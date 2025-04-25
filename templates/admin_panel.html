@@ -41,6 +41,9 @@
                         <th>ID</th>
                         <th>用户名</th>
                         <th>角色</th>
+                        <th>单位</th>
+                        <th>学号/工号</th>
+                        <th>联系方式</th>
                         <th>创建时间</th>
                         <th>操作</th>
                     </tr>
@@ -58,6 +61,13 @@
                             {% elif user.role == 'student' %}
                             <span class="badge badge-warning">学生</span>
                             {% endif %}
+                        </td>
+                        <td>{{ user.organization or '-' }}</td>
+                        <td>{{ user.id_number or '-' }}</td>
+                        <td>
+                            {% if user.phone %}电话: {{ user.phone }}{% endif %}
+                            {% if user.email %}{% if user.phone %}<br>{% endif %}邮箱: {{ user.email }}{% endif %}
+                            {% if not user.phone and not user.email %}-{% endif %}
                         </td>
                         <td>{{ user.created_at }}</td>
                         <td>

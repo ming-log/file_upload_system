@@ -29,6 +29,13 @@ class User(Base):
     role = Column(String)  # admin, teacher, student
     created_at = Column(DateTime, default=datetime.datetime.now)
     
+    # 新增字段
+    avatar = Column(String, nullable=True)  # 用户头像路径
+    organization = Column(String, nullable=True)  # 工作/学习单位
+    id_number = Column(String, nullable=True)  # 学号/工号
+    phone = Column(String, nullable=True)  # 手机号
+    email = Column(String, nullable=True)  # 邮箱
+    
     # 关系
     classes = relationship("Class", secondary=class_student_association, back_populates="students")
     teacher_classes = relationship("Class", back_populates="teacher")

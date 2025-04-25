@@ -1,0 +1,155 @@
+{% extends "layout.html" %}
+
+{% block title %}个人资料 - 文件上传系统{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>个人资料</h1>
+    <p>您可以在这里编辑您的个人信息</p>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2>基本信息</h2>
+    </div>
+    <div class="card-body">
+        <div class="profile-content">
+            <div class="profile-avatar">
+                <img src="{{ url_for('static', path=user.avatar if user.avatar else '/images/avatar.png') }}" alt="用户头像" class="avatar-preview">
+            </div>
+            <div class="profile-details">
+                <div class="user-info-item">
+                    <strong>用户名:</strong> {{ user.username }}
+                </div>
+                <div class="user-info-item">
+                    <strong>角色:</strong> {{ user.role|replace('admin', '管理员')|replace('teacher', '教师')|replace('student', '学生') }}
+                </div>
+                <div class="user-info-item">
+                    {% if user.role == 'student' %}
+                    <strong>学校:</strong> {{ user.organization or '未设置' }}
+                    {% else %}
+                    <strong>工作单位:</strong> {{ user.organization or '未设置' }}
+                    {% endif %}
+                </div>
+                <div class="user-info-item">
+                    {% if user.role == 'student' %}
+                    <strong>学号:</strong> {{ user.id_number or '未设置' }}
+                    {% else %}
+                    <strong>工号:</strong> {{ user.id_number or '未设置' }}
+                    {% endif %}
+                </div>
+                <div class="user-info-item">
+                    <strong>加入时间:</strong> {{ user.created_at }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2>编辑个人资料</h2>
+    </div>
+    <div class="card-body">
+        <form action="{{ url_for('update_profile') }}" method="post" enctype="multipart/form-data" class="needs-validation">
+            <div class="form-group">
+                <label for="avatar">更新头像</label>
+                <input type="file" id="avatar" name="avatar" accept="image/*">
+                <small class="text-muted">* 推荐使用正方形图片，最大尺寸为 1MB</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="organization">
+                    {% if user.role == 'student' %}学校{% else %}工作单位{% endif %}
+                </label>
+                <input type="text" id="organization" name="organization" value="{{ user.organization or '' }}" {% if user.role == 'student' %}readonly{% endif %}>
+                {% if user.role == 'student' %}
+                <small class="text-muted">* 学生用户无法修改学校</small>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="id_number">
+                    {% if user.role == 'student' %}学号{% else %}工号{% endif %}
+                </label>
+                <input type="text" id="id_number" name="id_number" value="{{ user.id_number or '' }}" {% if user.role == 'student' %}readonly{% endif %}>
+                {% if user.role == 'student' %}
+                <small class="text-muted">* 学生用户无法修改学号</small>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="phone">手机号</label>
+                <input type="tel" id="phone" name="phone" value="{{ user.phone or '' }}">
+            </div>
+            
+            <div class="form-group">
+                <label for="email">邮箱</label>
+                <input type="email" id="email" name="email" value="{{ user.email or '' }}">
+            </div>
+            
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> 保存更改</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 头像预览功能
+    const avatarInput = document.getElementById('avatar');
+    const avatarPreview = document.querySelector('.avatar-preview');
+    const form = document.querySelector('form');
+    
+    if (avatarInput && avatarPreview) {
+        avatarInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                const file = this.files[0];
+                
+                // 检查文件类型
+                const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
+                if (!allowedTypes.includes(file.type)) {
+                    alert('只允许上传JPG, JPEG, PNG或GIF格式的图片');
+                    this.value = ''; // 清空选择
+                    return;
+                }
+                
+                // 检查文件大小 (1MB = 1024 * 1024 bytes)
+                if (file.size > 1024 * 1024) {
+                    alert('图片大小不能超过1MB');
+                    this.value = ''; // 清空选择
+                    return;
+                }
+                
+                // 显示预览
+                const reader = new FileReader();                
+                reader.onload = function(e) {
+                    avatarPreview.src = e.target.result;
+                };                
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+    
+    // 表单提交前验证
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            if (avatarInput.files && avatarInput.files[0]) {
+                const file = avatarInput.files[0];
+                
+                // 再次检查文件大小，确保用户不绕过客户端验证
+                if (file.size > 1024 * 1024) {
+                    e.preventDefault();
+                    alert('图片大小不能超过1MB');
+                    return false;
+                }
+            }
+            return true;
+        });
+    }
+});
+</script>
+{% endblock %} 

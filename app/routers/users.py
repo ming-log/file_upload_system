@@ -1,14 +1,16 @@
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Form
+from fastapi import APIRouter, Depends, HTTPException, Request, Form, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+import os, shutil
+from pathlib import Path
 
 from app.database import get_db
 from app.models import User
 from app.schemas import User as UserSchema, UserCreate, UserUpdate
-from app.auth import get_current_user, get_password_hash, admin_required
+from app.auth import get_current_user, get_password_hash, admin_required, verify_password
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -86,6 +88,10 @@ async def update_user(
     username: str = Form(...),
     password: str = Form(None),
     role: str = Form(...),
+    organization: str = Form(None),
+    id_number: str = Form(None),
+    phone: str = Form(None),
+    email: str = Form(None),
     current_user: User = Depends(admin_required),
     db: Session = Depends(get_db)
 ):
@@ -115,6 +121,12 @@ async def update_user(
     # 设置角色（对于非admin账户）
     if user.username != "admin":
         user.role = role
+    
+    # 更新用户资料
+    user.organization = organization
+    user.id_number = id_number
+    user.phone = phone
+    user.email = email
     
     db.commit()
     db.refresh(user)
@@ -166,4 +178,136 @@ async def delete_user_confirm(
     db.delete(user)
     db.commit()
     
-    return RedirectResponse(url="/admin/users", status_code=303) 
+    return RedirectResponse(url="/admin/users", status_code=303)
+
+@router.get("/profile", response_class=HTMLResponse, name="profile")
+async def profile_page(
+    request: Request,
+    current_user: User = Depends(get_current_user)
+):
+    return templates.TemplateResponse(
+        "profile.html",
+        {"request": request, "user": current_user}
+    )
+
+@router.post("/profile/update", name="update_profile")
+async def update_profile(
+    request: Request,
+    avatar: UploadFile = File(None),
+    organization: str = Form(None),
+    id_number: str = Form(None),
+    phone: str = Form(None),
+    email: str = Form(None),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # 获取当前用户
+    user = db.query(User).filter(User.id == current_user.id).first()
+    
+    # 更新用户资料
+    if organization is not None:
+        # 学生用户不能修改工作/学习单位
+        if user.role != "student":
+            user.organization = organization
+    
+    if id_number is not None:
+        # 学生用户不能修改学号/工号
+        if user.role != "student":
+            user.id_number = id_number
+    
+    if phone is not None:
+        user.phone = phone
+    
+    if email is not None:
+        user.email = email
+    
+    # 处理头像上传
+    if avatar and avatar.filename:
+        # 检查文件类型
+        allowed_mime_types = ["image/jpeg", "image/png", "image/gif", "image/jpg"]
+        if avatar.content_type not in allowed_mime_types:
+            messages = {"danger": "只允许上传JPG, JPEG, PNG或GIF格式的图片"}
+            response = templates.TemplateResponse(
+                "profile.html",
+                {"request": request, "user": current_user, "messages": messages}
+            )
+            return response
+            
+        # 检查文件大小限制（1MB）
+        contents = await avatar.read()
+        await avatar.seek(0)  # 重置文件指针
+        
+        # 1MB = 1024 * 1024 字节
+        if len(contents) > 1024 * 1024:
+            # 返回错误提示
+            messages = {"danger": "头像文件大小超过1MB限制，请选择较小的图片"}
+            response = templates.TemplateResponse(
+                "profile.html",
+                {"request": request, "user": current_user, "messages": messages}
+            )
+            return response
+            
+        # 确保上传目录存在
+        avatar_dir = Path("static/uploads/avatars")
+        avatar_dir.mkdir(parents=True, exist_ok=True)
+        
+        # 设置文件名和保存路径
+        file_ext = os.path.splitext(avatar.filename)[1]
+        avatar_path = f"uploads/avatars/user_{user.id}{file_ext}"
+        file_path = f"static/{avatar_path}"
+        
+        # 保存文件
+        with open(file_path, "wb") as buffer:
+            buffer.write(contents)  # 使用已读取的内容
+        
+        # 更新用户头像路径
+        user.avatar = avatar_path
+    
+    db.commit()
+    db.refresh(user)
+    
+    return RedirectResponse(url="/profile", status_code=303)
+
+@router.get("/change-password", response_class=HTMLResponse, name="change_password_page")
+async def change_password_page(
+    request: Request,
+    current_user: User = Depends(get_current_user)
+):
+    # 管理员不通过此页面修改密码
+    if current_user.role == "admin":
+        raise HTTPException(status_code=403, detail="管理员不能通过此页面修改密码")
+    
+    return templates.TemplateResponse(
+        "change_password.html",
+        {"request": request, "user": current_user}
+    )
+
+@router.post("/change-password", name="change_password")
+async def change_password(
+    request: Request,
+    current_password: str = Form(...),
+    new_password: str = Form(...),
+    confirm_password: str = Form(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # 管理员不通过此页面修改密码
+    if current_user.role == "admin":
+        raise HTTPException(status_code=403, detail="管理员不能通过此页面修改密码")
+    
+    # 验证确认密码
+    if new_password != confirm_password:
+        raise HTTPException(status_code=400, detail="新密码和确认密码不一致")
+    
+    # 获取当前用户
+    user = db.query(User).filter(User.id == current_user.id).first()
+    
+    # 验证当前密码
+    if not verify_password(current_password, user.hashed_password):
+        raise HTTPException(status_code=400, detail="当前密码不正确")
+    
+    # 更新密码
+    user.hashed_password = get_password_hash(new_password)
+    db.commit()
+    
+    return RedirectResponse(url="/profile", status_code=303) 

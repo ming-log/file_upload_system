@@ -14,6 +14,11 @@ class UserUpdate(BaseModel):
     username: Optional[str] = None
     password: Optional[str] = None
     role: Optional[str] = None
+    avatar: Optional[str] = None
+    organization: Optional[str] = None
+    id_number: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
 
 class UserInDB(UserBase):
     id: int

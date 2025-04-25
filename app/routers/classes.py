@@ -207,9 +207,9 @@ async def download_student_template():
     """下载学生导入模板"""
     content = io.StringIO()
     writer = csv.writer(content)
-    writer.writerow(["username", "password"])
-    writer.writerow(["student1", "password1"])
-    writer.writerow(["student2", "password2"])
+    writer.writerow(["username", "password", "organization", "id_number"])
+    writer.writerow(["student1", "password1", "示例大学", "2023001"])
+    writer.writerow(["student2", "password2", "示例大学", "2023002"])
     
     content.seek(0)
     
@@ -265,6 +265,16 @@ async def import_students(
             if len(row) >= 2:
                 username, password = row[0], row[1]
                 
+                # 提取学校和学号信息（如果存在）
+                organization = None
+                id_number = None
+                
+                if len(row) >= 3:
+                    organization = row[2]
+                
+                if len(row) >= 4:
+                    id_number = row[3]
+                
                 # 检查学生是否已存在
                 student = db.query(User).filter(User.username == username).first()
                 if not student:
@@ -273,14 +283,23 @@ async def import_students(
                     student = User(
                         username=username,
                         hashed_password=hashed_password,
-                        role="student"
+                        role="student",
+                        organization=organization,
+                        id_number=id_number
                     )
                     db.add(student)
                     db.commit()
                     db.refresh(student)
+                elif student.role == "student":
+                    # 如果学生已存在且是学生角色，更新学校和学号信息（仅当CSV中有提供）
+                    if organization and not student.organization:
+                        student.organization = organization
+                    if id_number and not student.id_number:
+                        student.id_number = id_number
+                    db.commit()
                 
                 # 检查学生是否已在班级中
-                if student not in class_obj.students:
+                if student not in class_obj.students and student.role == "student":
                     class_obj.students.append(student)
         
         db.commit()

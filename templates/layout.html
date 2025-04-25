@@ -39,8 +39,8 @@
                 </nav>
                 
                 <div class="user-info">
-                    <div class="user-avatar">
-                        <img src="{{ url_for('static', path='/images/avatar.png') }}" alt="用户头像">
+                    <div class="user-avatar dropdown" id="userAvatarDropdown">
+                        <img src="{{ url_for('static', path=user.avatar if user.avatar else '/images/avatar.png') }}" alt="用户头像" class="avatar-toggle" id="avatarToggle">
                     </div>
                     <div class="user-details">
                         <span class="user-name">{{ user.username }}</span>
@@ -111,6 +111,33 @@
             });
         }
         
+        // 头像下拉菜单控制
+        const avatarToggle = document.querySelector('.avatar-toggle');
+        const dropdownMenu = document.querySelector('.dropdown-menu');
+        
+        if (avatarToggle && dropdownMenu) {
+            // 鼠标进入头像时显示下拉菜单
+            avatarToggle.addEventListener('mouseenter', function() {
+                dropdownMenu.style.display = 'block';
+            });
+            
+            // 为整个下拉区域添加鼠标离开事件
+            const dropdown = document.querySelector('.user-avatar.dropdown');
+            dropdown.addEventListener('mouseleave', function() {
+                dropdownMenu.style.display = 'none';
+            });
+            
+            // 点击头像也触发下拉菜单
+            avatarToggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (dropdownMenu.style.display === 'block') {
+                    dropdownMenu.style.display = 'none';
+                } else {
+                    dropdownMenu.style.display = 'block';
+                }
+            });
+        }
+        
         // 关闭提示框
         const closeButtons = document.querySelectorAll('.close-alert');
         closeButtons.forEach(button => {
@@ -138,5 +165,74 @@
     </script>
     
     {% block extra_scripts %}{% endblock %}
+    
+    <!-- 用户头像下拉菜单 -->
+    <div id="headerDropdownMenu" style="display: none; position: fixed; z-index: 9999; background-color: white; width: 180px; border-radius: 8px; box-shadow: 0 5px 20px rgba(0,0,0,0.3); border: 2px solid #4361ee;">
+        <a href="{{ url_for('profile') }}" class="dropdown-item">
+            <i class="fas fa-user-edit"></i> 编辑个人信息
+        </a>
+        <a href="{{ url_for('change_password_page') }}" class="dropdown-item">
+            <i class="fas fa-key"></i> 修改密码
+        </a>
+    </div>
+    
+    <!-- 下拉菜单控制脚本 -->
+    <script>
+        // 立即执行函数，处理头像下拉菜单
+        (function() {
+            var avatarToggle = document.getElementById('avatarToggle');
+            var dropdown = document.getElementById('userAvatarDropdown');
+            var dropdownMenu = document.getElementById('headerDropdownMenu');
+            
+            if (avatarToggle && dropdown && dropdownMenu) {
+                function updateMenuPosition() {
+                    // 获取头像位置
+                    var rect = avatarToggle.getBoundingClientRect();
+                    // 设置下拉菜单位置
+                    dropdownMenu.style.top = (rect.bottom + 10) + 'px';
+                    dropdownMenu.style.left = (rect.left) + 'px';
+                }
+                
+                // 鼠标进入头像显示菜单
+                avatarToggle.addEventListener('mouseenter', function() {
+                    updateMenuPosition();
+                    dropdownMenu.style.display = 'block';
+                });
+                
+                // 鼠标离开下拉菜单隐藏
+                dropdownMenu.addEventListener('mouseleave', function() {
+                    dropdownMenu.style.display = 'none';
+                });
+                
+                // 点击头像切换菜单显示状态
+                avatarToggle.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    updateMenuPosition();
+                    if (dropdownMenu.style.display === 'block') {
+                        dropdownMenu.style.display = 'none';
+                    } else {
+                        dropdownMenu.style.display = 'block';
+                    }
+                });
+                
+                // 点击页面其他地方关闭菜单
+                document.addEventListener('click', function(e) {
+                    if (e.target !== avatarToggle && !dropdownMenu.contains(e.target)) {
+                        dropdownMenu.style.display = 'none';
+                    }
+                });
+                
+                // 窗口大小改变时更新位置
+                window.addEventListener('resize', function() {
+                    if (dropdownMenu.style.display === 'block') {
+                        updateMenuPosition();
+                    }
+                });
+                
+                // 初始化一次位置
+                updateMenuPosition();
+            }
+        })();
+    </script>
 </body>
 </html> 
