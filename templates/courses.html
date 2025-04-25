@@ -1,0 +1,54 @@
+{% extends "layout.html" %}
+
+{% block title %}课程管理 - 文件上传系统{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>课程管理</h1>
+    <a href="{{ url_for('create_course') }}" class="btn btn-primary"><i class="fas fa-plus"></i> 添加课程</a>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2>我的课程</h2>
+    </div>
+    <div class="card-body">
+        {% if courses %}
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>课程名称</th>
+                        <th>课程代码</th>
+                        <th>学期</th>
+                        <th>描述</th>
+                        <th>关联班级数</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for course in courses %}
+                    <tr>
+                        <td>{{ course.name }}</td>
+                        <td>{{ course.code }}</td>
+                        <td>{{ course.semester }}</td>
+                        <td>{{ course.description or '无' }}</td>
+                        <td>{{ course.classes|length }}</td>
+                        <td>
+                            <a href="{{ url_for('view_course', course_id=course.id) }}" class="btn btn-sm btn-info">
+                                <i class="fas fa-edit"></i> 编辑
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            您还没有创建任何课程。点击"添加课程"按钮创建您的第一个课程。
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

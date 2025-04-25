@@ -1,0 +1,61 @@
+{% extends "layout.html" %}
+
+{% block title %}作业管理 - 文件上传系统{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>作业管理</h1>
+    <a href="{{ url_for('create_assignment') }}" class="btn btn-primary"><i class="fas fa-plus"></i> 添加作业</a>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2>我的作业</h2>
+    </div>
+    <div class="card-body">
+        {% if assignments %}
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>作业标题</th>
+                        <th>班级</th>
+                        <th>课程</th>
+                        <th>截止日期</th>
+                        <th>完成情况</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for assignment in assignments %}
+                    <tr>
+                        <td>{{ assignment.title }}</td>
+                        <td>{{ assignment.class_obj.name }}</td>
+                        <td>{{ assignment.course.name }}</td>
+                        <td>{{ assignment.due_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            {% if assignment.total_students > 0 %}
+                            {{ assignment.submissions_count }}/{{ assignment.total_students }}
+                            ({{ (assignment.submissions_count / assignment.total_students * 100)|int }}%)
+                            {% else %}
+                            0/0 (0%)
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('view_assignment', assignment_id=assignment.id) }}" class="btn btn-sm btn-info">
+                                <i class="fas fa-edit"></i> 查看/编辑
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            您还没有创建任何作业。点击"添加作业"按钮创建您的第一个作业。
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

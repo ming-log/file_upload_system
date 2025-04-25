@@ -1,0 +1,77 @@
+{% extends "layout.html" %}
+
+{% block title %}文件上传 - {{ assignment.title }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 class="card-title">作业: {{ assignment.title }}</h2>
+    
+    <div class="assignment-info">
+        <p><strong>课程:</strong> {{ assignment.course.name }}</p>
+        <p><strong>班级:</strong> {{ assignment.class.name }}</p>
+        <p><strong>截止日期:</strong> {{ assignment.due_date }}</p>
+        <p><strong>描述:</strong> {{ assignment.description }}</p>
+    </div>
+    
+    {% if assignment.status == 'submitted' %}
+    <div class="alert alert-success">
+        您已于 {{ submission.created_at }} 提交了此作业。
+    </div>
+    
+    <h3>已上传的文件:</h3>
+    <div class="file-list">
+        {% for file in submission.files %}
+        <div class="file-item">
+            <div>
+                <i class="fas fa-file"></i>
+                <span>{{ file.filename }}</span>
+            </div>
+            <div>
+                <span class="file-size">{{ file.size }}</span>
+                <a href="{{ url_for('download_file', file_id=file.id) }}" class="btn-secondary">
+                    <i class="fas fa-download"></i>
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    {% if now < assignment.due_date %}
+    <form action="{{ url_for('upload_file', assignment_id=assignment.id) }}" method="post" enctype="multipart/form-data">
+        <h3>重新提交:</h3>
+        <div class="file-upload">
+            <i class="fas fa-cloud-upload-alt"></i>
+            <p>拖放文件到这里或点击上传</p>
+            <input type="file" name="files" multiple required>
+        </div>
+        <div class="file-list">
+            <!-- 文件列表将通过JavaScript动态添加 -->
+        </div>
+        <button type="submit" class="btn">重新提交</button>
+    </form>
+    {% endif %}
+    
+    {% else %}
+    <form action="{{ url_for('upload_file', assignment_id=assignment.id) }}" method="post" enctype="multipart/form-data">
+        <div class="file-upload">
+            <i class="fas fa-cloud-upload-alt"></i>
+            <p>拖放文件到这里或点击上传</p>
+            <input type="file" name="files" multiple required>
+        </div>
+        <div class="file-list">
+            <!-- 文件列表将通过JavaScript动态添加 -->
+        </div>
+        <button type="submit" class="btn">提交作业</button>
+    </form>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // 初始化文件上传界面
+    document.addEventListener('DOMContentLoaded', function() {
+        initFileUpload();
+    });
+</script>
+{% endblock %} 

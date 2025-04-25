@@ -1,0 +1,178 @@
+{% extends "layout.html" %}
+
+{% block title %}{% if assignment %}编辑作业{% else %}创建作业{% endif %} - 文件上传系统{% endblock %}
+
+{% block content %}
+<h1>{% if assignment %}编辑作业{% else %}创建作业{% endif %}</h1>
+
+<div class="card">
+    <h2 class="card-title">作业信息</h2>
+    <form action="{% if assignment %}{{ url_for('update_assignment', assignment_id=assignment.id) }}{% else %}{{ url_for('create_assignment') }}{% endif %}" method="post" class="needs-validation">
+        <div class="form-group">
+            <label for="title">作业标题</label>
+            <input type="text" id="title" name="title" value="{{ assignment.title if assignment else '' }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="description">作业描述</label>
+            <textarea id="description" name="description" rows="5" required>{{ assignment.description if assignment else '' }}</textarea>
+        </div>
+        
+        <div class="form-group">
+            <label for="class_id">班级</label>
+            <select id="class_id" name="class_id" required>
+                <option value="">-- 请选择班级 --</option>
+                {% for class in classes %}
+                <option value="{{ class.id }}" {% if assignment and assignment.class_id == class.id %}selected{% endif %}>
+                    {{ class.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="course_id">课程</label>
+            <select id="course_id" name="course_id" required {% if not courses %}disabled{% endif %}>
+                <option value="">-- 请先选择班级 --</option>
+                {% if courses %}
+                    {% for course in courses %}
+                    <option value="{{ course.id }}" {% if assignment and assignment.course_id == course.id %}selected{% endif %}>
+                        {{ course.name }}
+                    </option>
+                    {% endfor %}
+                {% endif %}
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="due_date">截止日期</label>
+            <input type="datetime-local" id="due_date" name="due_date" value="{{ assignment.due_date|date if assignment else '' }}" required>
+        </div>
+        
+        <div class="form-group">
+            <button type="submit" class="btn">保存作业</button>
+            <a href="{{ url_for('assignments') }}" class="btn btn-secondary">取消</a>
+        </div>
+    </form>
+</div>
+
+{% if assignment %}
+<div class="card">
+    <h2 class="card-title">学生提交情况</h2>
+    
+    <div class="status-summary">
+        <div class="status-card">
+            <div class="status-value">{{ submissions|length }}</div>
+            <div class="status-label">已提交</div>
+        </div>
+        
+        <div class="status-card">
+            <div class="status-value">{{ assignment.class.students|length - submissions|length }}</div>
+            <div class="status-label">未提交</div>
+        </div>
+        
+        <div class="status-card">
+            <div class="status-value">{{ (submissions|length / assignment.class.students|length * 100)|round|int if assignment.class.students|length > 0 else 0 }}%</div>
+            <div class="status-label">提交率</div>
+        </div>
+    </div>
+    
+    <table class="table">
+        <thead>
+            <tr>
+                <th>学生</th>
+                <th>提交状态</th>
+                <th>提交时间</th>
+                <th>文件数量</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for student in assignment.class.students %}
+            <tr>
+                <td>{{ student.username }}</td>
+                {% set submission = submissions_by_student.get(student.id) %}
+                {% if submission %}
+                <td><span class="status-badge status-submitted">已提交</span></td>
+                <td>{{ submission.created_at }}</td>
+                <td>{{ submission.files|length }}</td>
+                <td>
+                    <a href="{{ url_for('view_submission', submission_id=submission.id) }}" class="btn btn-secondary">查看</a>
+                </td>
+                {% else %}
+                <td><span class="status-badge status-pending">未提交</span></td>
+                <td>-</td>
+                <td>0</td>
+                <td>-</td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div class="export-options">
+        <a href="{{ url_for('export_submissions', assignment_id=assignment.id, format='csv') }}" class="btn btn-secondary">
+            <i class="fas fa-file-csv"></i> 导出为CSV
+        </a>
+        <a href="{{ url_for('export_submissions', assignment_id=assignment.id, format='excel') }}" class="btn btn-secondary">
+            <i class="fas fa-file-excel"></i> 导出为Excel
+        </a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 班级选择联动课程选择
+        const classSelect = document.getElementById('class_id');
+        const courseSelect = document.getElementById('course_id');
+        
+        if (classSelect && courseSelect) {
+            classSelect.addEventListener('change', function() {
+                const classId = this.value;
+                
+                if (!classId) {
+                    // 清空课程选择
+                    courseSelect.innerHTML = '<option value="">-- 请先选择班级 --</option>';
+                    courseSelect.disabled = true;
+                    return;
+                }
+                
+                // 获取该班级关联的课程
+                fetch(`/api/classes/${classId}/courses`)
+                    .then(response => response.json())
+                    .then(data => {
+                        courseSelect.disabled = false;
+                        
+                        // 清空现有选项
+                        courseSelect.innerHTML = '';
+                        
+                        if (data.courses.length === 0) {
+                            courseSelect.innerHTML = '<option value="">-- 该班级没有关联课程 --</option>';
+                            courseSelect.disabled = true;
+                            return;
+                        }
+                        
+                        // 添加选项
+                        const defaultOption = document.createElement('option');
+                        defaultOption.value = '';
+                        defaultOption.textContent = '-- 请选择课程 --';
+                        courseSelect.appendChild(defaultOption);
+                        
+                        data.courses.forEach(course => {
+                            const option = document.createElement('option');
+                            option.value = course.id;
+                            option.textContent = course.name;
+                            courseSelect.appendChild(option);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('获取课程失败:', error);
+                    });
+            });
+        }
+    });
+</script>
+{% endblock %} 

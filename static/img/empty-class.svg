@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200px" height="200px" viewBox="0 0 200 200" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g transform="translate(0.000000, 10.000000)">
+            <!-- 书本/班级底部 -->
+            <rect fill="#E0E0E0" x="20" y="130" width="160" height="20" rx="2"></rect>
+            
+            <!-- 书本/班级主体 -->
+            <rect fill="#F5F5F5" x="30" y="30" width="140" height="100" rx="2"></rect>
+            
+            <!-- 书本/班级边缘 -->
+            <path d="M30,30 L170,30 C171.105,30 172,30.8954 172,32 L172,130 L28,130 L28,32 C28,30.8954 28.8954,30 30,30 Z" stroke="#BDBDBD" stroke-width="2"></path>
+            
+            <!-- 书本/班级内部线条 -->
+            <line x1="40" y1="50" x2="160" y2="50" stroke="#BDBDBD" stroke-width="2" stroke-linecap="round"></line>
+            <line x1="40" y1="70" x2="160" y2="70" stroke="#BDBDBD" stroke-width="2" stroke-linecap="round"></line>
+            <line x1="40" y1="90" x2="160" y2="90" stroke="#BDBDBD" stroke-width="2" stroke-linecap="round"></line>
+            <line x1="40" y1="110" x2="160" y2="110" stroke="#BDBDBD" stroke-width="2" stroke-linecap="round"></line>
+            
+            <!-- 人物图标 - 老师 -->
+            <circle fill="#1A73E8" cx="60" cy="20" r="15"></circle>
+            <path d="M60,12 C56.6863,12 54,14.6863 54,18 C54,21.3137 56.6863,24 60,24 C63.3137,24 66,21.3137 66,18 C66,14.6863 63.3137,12 60,12 Z" fill="#FFFFFF"></path>
+            <path d="M52,35 L68,35 C68,35 68,28 60,28 C52,28 52,35 52,35 Z" fill="#FFFFFF"></path>
+            
+            <!-- 人物图标 - 学生1 -->
+            <circle fill="#34A853" cx="100" cy="20" r="12"></circle>
+            <path d="M100,14 C97.2386,14 95,16.2386 95,19 C95,21.7614 97.2386,24 100,24 C102.761,24 105,21.7614 105,19 C105,16.2386 102.761,14 100,14 Z" fill="#FFFFFF"></path>
+            <path d="M94,33 L106,33 C106,33 106,27 100,27 C94,27 94,33 94,33 Z" fill="#FFFFFF"></path>
+            
+            <!-- 人物图标 - 学生2 -->
+            <circle fill="#4285F4" cx="140" cy="20" r="12"></circle>
+            <path d="M140,14 C137.239,14 135,16.2386 135,19 C135,21.7614 137.239,24 140,24 C142.761,24 145,21.7614 145,19 C145,16.2386 142.761,14 140,14 Z" fill="#FFFFFF"></path>
+            <path d="M134,33 L146,33 C146,33 146,27 140,27 C134,27 134,33 134,33 Z" fill="#FFFFFF"></path>
+            
+            <!-- 加号图标 -->
+            <circle fill="#F5F5F5" cx="100" cy="80" r="25" stroke="#BDBDBD" stroke-width="2"></circle>
+            <line x1="85" y1="80" x2="115" y2="80" stroke="#BDBDBD" stroke-width="4" stroke-linecap="round"></line>
+            <line x1="100" y1="65" x2="100" y2="95" stroke="#BDBDBD" stroke-width="4" stroke-linecap="round"></line>
+        </g>
+    </g>
+</svg> 

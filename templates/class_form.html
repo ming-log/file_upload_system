@@ -1,0 +1,155 @@
+{% extends "layout.html" %}
+
+{% block title %}{% if class %}编辑班级{% else %}创建班级{% endif %} - 文件上传系统{% endblock %}
+
+{% block content %}
+<h1>{% if class %}编辑班级{% else %}创建班级{% endif %}</h1>
+
+<div class="card">
+    <h2 class="card-title">班级信息</h2>
+    <form action="{% if class %}{{ url_for('update_class', class_id=class.id) }}{% else %}{{ url_for('create_class') }}{% endif %}" method="post" class="needs-validation">
+        <div class="form-group">
+            <label for="class_name">班级名称</label>
+            <input type="text" id="class_name" name="class_name" value="{{ class.name if class else '' }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="description">班级描述</label>
+            <textarea id="description" name="description" rows="3">{{ class.description if class else '' }}</textarea>
+        </div>
+        
+        <div class="form-group">
+            <label>关联课程</label>
+            <div class="checkbox-group">
+                {% for course in courses %}
+                <div class="checkbox-item">
+                    <input type="checkbox" id="course-{{ course.id }}" name="courses" value="{{ course.id }}" 
+                        {% if class and course.id in class.course_ids %}checked{% endif %}>
+                    <label for="course-{{ course.id }}">{{ course.name }}</label>
+                </div>
+                {% endfor %}
+            </div>
+            {% if not courses %}
+            <p class="form-hint">没有可用的课程。请先<a href="{{ url_for('create_course') }}">创建课程</a>.</p>
+            {% endif %}
+        </div>
+        
+        <div class="form-group">
+            <button type="submit" class="btn">保存班级</button>
+            <a href="{{ url_for('classes') }}" class="btn btn-secondary">取消</a>
+        </div>
+    </form>
+</div>
+
+{% if class %}
+<div class="card">
+    <h2 class="card-title">学生管理</h2>
+    
+    <div class="students-section">
+        <div class="current-students">
+            <h3>当前学生</h3>
+            {% if class.students %}
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>用户名</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student in class.students %}
+                    <tr>
+                        <td>{{ student.id }}</td>
+                        <td>{{ student.username }}</td>
+                        <td>
+                            <form action="{{ url_for('remove_student_from_class', class_id=class.id, student_id=student.id) }}" method="post" style="display: inline;">
+                                <button type="submit" class="btn btn-danger">移除</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>该班级暂无学生。</p>
+            {% endif %}
+        </div>
+        
+        <div class="add-students">
+            <h3>添加学生</h3>
+            <div class="add-student-methods">
+                <div class="card-tab active" data-target="individual-add">单个添加</div>
+                <div class="card-tab" data-target="batch-add">批量导入</div>
+            </div>
+            
+            <div id="individual-add" class="add-method">
+                <form action="{{ url_for('add_student_to_class', class_id=class.id) }}" method="post" class="needs-validation">
+                    <div class="form-group">
+                        <label for="student_id">选择学生</label>
+                        <select id="student_id" name="student_id" required>
+                            <option value="">-- 请选择 --</option>
+                            {% for student in available_students %}
+                            <option value="{{ student.id }}">{{ student.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <button type="submit" class="btn">添加学生</button>
+                    </div>
+                </form>
+            </div>
+            
+            <div id="batch-add" class="add-method" style="display: none;">
+                <form action="{{ url_for('import_students', class_id=class.id) }}" method="post" enctype="multipart/form-data" class="needs-validation">
+                    <div class="form-group">
+                        <label for="students_file">学生名单 (CSV文件)</label>
+                        <input type="file" id="students_file" name="students_file" accept=".csv" required>
+                        <small>CSV文件格式: 用户名,密码</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <button type="submit" class="btn">导入学生</button>
+                    </div>
+                </form>
+                
+                <div class="template-download">
+                    <a href="{{ url_for('download_student_template') }}" class="btn btn-secondary">
+                        <i class="fas fa-download"></i> 下载模板
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 添加学生标签页切换
+        const cardTabs = document.querySelectorAll('.card-tab');
+        const addMethods = document.querySelectorAll('.add-method');
+        
+        cardTabs.forEach(tab => {
+            tab.addEventListener('click', function() {
+                // 移除所有标签的活动状态
+                cardTabs.forEach(t => t.classList.remove('active'));
+                // 隐藏所有方法
+                addMethods.forEach(m => m.style.display = 'none');
+                
+                // 激活当前标签
+                this.classList.add('active');
+                
+                // 显示对应的方法
+                const targetMethod = document.getElementById(this.dataset.target);
+                if (targetMethod) {
+                    targetMethod.style.display = 'block';
+                }
+            });
+        });
+    });
+</script>
+{% endblock %} 

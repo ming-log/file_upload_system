@@ -1,0 +1,57 @@
+{% extends "layout.html" %}
+
+{% block title %}编辑用户 - 文件上传系统{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>编辑用户</h1>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2>用户信息</h2>
+    </div>
+    <div class="card-body">
+        {% if is_admin_account %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> 注意：此账户是系统管理员账户，用户名和角色无法修改。
+        </div>
+        {% endif %}
+        
+        <form action="{{ url_for('update_user', user_id=edit_user.id) }}" method="post" class="needs-validation">
+            <div class="form-group">
+                <label for="username">用户名</label>
+                <input type="text" id="username" name="username" value="{{ edit_user.username }}" {% if is_admin_account %}readonly{% endif %} required>
+                {% if is_admin_account %}
+                <small class="text-muted">* 管理员账户的用户名不能修改</small>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="password">密码</label>
+                <input type="password" id="password" name="password" placeholder="不填则保持原密码">
+                <small class="text-muted">* 留空表示不修改密码</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="role">角色</label>
+                <select id="role" name="role" {% if is_admin_account %}disabled{% endif %} required>
+                    <option value="">-- 请选择 --</option>
+                    <option value="admin" {% if edit_user.role == 'admin' %}selected{% endif %}>管理员</option>
+                    <option value="teacher" {% if edit_user.role == 'teacher' %}selected{% endif %}>老师</option>
+                    <option value="student" {% if edit_user.role == 'student' %}selected{% endif %}>学生</option>
+                </select>
+                {% if is_admin_account %}
+                <input type="hidden" name="role" value="admin">
+                <small class="text-muted">* 管理员账户的角色不能修改</small>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> 保存更改</button>
+                <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary"><i class="fas fa-times"></i> 取消</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %} 

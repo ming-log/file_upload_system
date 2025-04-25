@@ -1,0 +1,105 @@
+{% extends "layout.html" %}
+
+{% block title %}我的作业 - 文件上传系统{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>我的作业</h1>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2>待完成作业</h2>
+    </div>
+    <div class="card-body">
+        {% if pending_assignments %}
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>作业标题</th>
+                        <th>班级</th>
+                        <th>课程</th>
+                        <th>截止日期</th>
+                        <th>状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for assignment in pending_assignments %}
+                    <tr>
+                        <td>{{ assignment.title }}</td>
+                        <td>{{ assignment.class_obj.name }}</td>
+                        <td>{{ assignment.course.name }}</td>
+                        <td>{{ assignment.due_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            {% if assignment.status == 'pending' %}
+                            <span class="badge badge-warning">待提交</span>
+                            {% elif assignment.status == 'submitted' %}
+                            <span class="badge badge-success">已提交</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('view_assignment', assignment_id=assignment.id) }}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-upload"></i> 上传作业
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            您当前没有待完成的作业。
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header">
+        <h2>已完成作业</h2>
+    </div>
+    <div class="card-body">
+        {% if completed_assignments %}
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>作业标题</th>
+                        <th>班级</th>
+                        <th>课程</th>
+                        <th>截止日期</th>
+                        <th>状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for assignment in completed_assignments %}
+                    <tr>
+                        <td>{{ assignment.title }}</td>
+                        <td>{{ assignment.class_obj.name }}</td>
+                        <td>{{ assignment.course.name }}</td>
+                        <td>{{ assignment.due_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            <span class="badge badge-success">已提交</span>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('view_assignment', assignment_id=assignment.id) }}" class="btn btn-sm btn-info">
+                                <i class="fas fa-eye"></i> 查看
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            您当前没有已完成的作业。
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

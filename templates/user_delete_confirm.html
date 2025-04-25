@@ -1,0 +1,42 @@
+{% extends "layout.html" %}
+
+{% block title %}删除用户确认 - 文件上传系统{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>删除用户确认</h1>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2>确认删除</h2>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle"></i> 警告：您即将删除用户 <strong>{{ delete_user.username }}</strong>。此操作不可撤销！
+        </div>
+        
+        <div class="user-info mb-3">
+            <p><strong>用户ID:</strong> {{ delete_user.id }}</p>
+            <p><strong>用户名:</strong> {{ delete_user.username }}</p>
+            <p><strong>用户角色:</strong> 
+                {% if delete_user.role == 'admin' %}
+                <span class="badge badge-info">管理员</span>
+                {% elif delete_user.role == 'teacher' %}
+                <span class="badge badge-success">老师</span>
+                {% elif delete_user.role == 'student' %}
+                <span class="badge badge-warning">学生</span>
+                {% endif %}
+            </p>
+            <p><strong>创建时间:</strong> {{ delete_user.created_at }}</p>
+        </div>
+        
+        <form action="{{ url_for('delete_user_confirm', user_id=delete_user.id) }}" method="post">
+            <div class="form-group">
+                <button type="submit" class="btn btn-danger"><i class="fas fa-trash-alt"></i> 确认删除</button>
+                <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary"><i class="fas fa-times"></i> 取消</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,368 @@
+document.addEventListener('DOMContentLoaded', function() {
+    // 初始化文件上传功能
+    initFileUpload();
+    
+    // 初始化表单验证
+    initFormValidation();
+    
+    // 初始化登录/注册标签切换
+    initAuthTabs();
+    
+    // 初始化通知消息自动关闭
+    initAlertDismiss();
+    
+    // 初始化模态对话框
+    initModals();
+    
+    // 初始化删除确认功能
+    initDeleteConfirmation();
+});
+
+// 文件上传功能
+function initFileUpload() {
+    const fileUploads = document.querySelectorAll('.file-upload');
+    
+    fileUploads.forEach(upload => {
+        const input = upload.querySelector('input[type="file"]');
+        const fileList = upload.nextElementSibling;
+        
+        if (input && fileList) {
+            input.addEventListener('change', function(e) {
+                // 清空之前的文件列表
+                while (fileList.firstChild) {
+                    fileList.removeChild(fileList.firstChild);
+                }
+                
+                // 显示新选择的文件
+                for (let i = 0; i < this.files.length; i++) {
+                    const file = this.files[i];
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    
+                    // 确定文件图标
+                    let iconClass = 'fa-file';
+                    if (file.type.startsWith('image/')) {
+                        iconClass = 'fa-file-image';
+                    } else if (file.type.startsWith('video/')) {
+                        iconClass = 'fa-file-video';
+                    } else if (file.type.startsWith('audio/')) {
+                        iconClass = 'fa-file-audio';
+                    } else if (file.type === 'application/pdf') {
+                        iconClass = 'fa-file-pdf';
+                    } else if (file.type.includes('word')) {
+                        iconClass = 'fa-file-word';
+                    } else if (file.type.includes('excel') || file.type.includes('sheet')) {
+                        iconClass = 'fa-file-excel';
+                    } else if (file.type.includes('powerpoint') || file.type.includes('presentation')) {
+                        iconClass = 'fa-file-powerpoint';
+                    }
+                    
+                    // 格式化文件大小
+                    const fileSize = formatFileSize(file.size);
+                    
+                    fileItem.innerHTML = `
+                        <div>
+                            <i class="fas ${iconClass}"></i>
+                            <span>${file.name}</span>
+                        </div>
+                        <div>
+                            <span class="file-size">${fileSize}</span>
+                            <button type="button" class="btn-remove"><i class="fas fa-times"></i></button>
+                        </div>
+                    `;
+                    
+                    // 添加删除按钮事件
+                    const removeBtn = fileItem.querySelector('.btn-remove');
+                    removeBtn.addEventListener('click', function() {
+                        fileItem.remove();
+                        // 注意：这只删除UI上的文件项，实际的文件上传需要在提交表单时处理
+                    });
+                    
+                    fileList.appendChild(fileItem);
+                }
+            });
+            
+            // 拖放功能
+            upload.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                upload.classList.add('dragover');
+            });
+            
+            upload.addEventListener('dragleave', function() {
+                upload.classList.remove('dragover');
+            });
+            
+            upload.addEventListener('drop', function(e) {
+                e.preventDefault();
+                upload.classList.remove('dragover');
+                
+                if (e.dataTransfer.files.length) {
+                    input.files = e.dataTransfer.files;
+                    // 触发change事件以显示文件
+                    const event = new Event('change', { bubbles: true });
+                    input.dispatchEvent(event);
+                }
+            });
+        }
+    });
+}
+
+// 格式化文件大小
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// 表单验证
+function initFormValidation() {
+    const forms = document.querySelectorAll('form.needs-validation');
+    
+    forms.forEach(form => {
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
+            form.classList.add('was-validated');
+        }, false);
+    });
+}
+
+// 登录/注册标签切换
+function initAuthTabs() {
+    const authTabs = document.querySelectorAll('.auth-tab');
+    const authForms = document.querySelectorAll('.auth-form');
+    
+    authTabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            // 移除所有选项卡的活动状态
+            authTabs.forEach(t => t.classList.remove('active'));
+            // 隐藏所有表单
+            authForms.forEach(f => f.style.display = 'none');
+            
+            // 激活当前选项卡
+            this.classList.add('active');
+            
+            // 显示对应的表单
+            const targetForm = document.getElementById(this.dataset.target);
+            if (targetForm) {
+                targetForm.style.display = 'block';
+            }
+        });
+    });
+}
+
+// 警告消息自动关闭
+function initAlertDismiss() {
+    const alerts = document.querySelectorAll('.alert');
+    
+    alerts.forEach(alert => {
+        // 添加关闭按钮
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'close-alert';
+        closeBtn.innerHTML = '&times;';
+        closeBtn.addEventListener('click', function() {
+            alert.style.display = 'none';
+        });
+        
+        alert.appendChild(closeBtn);
+        
+        // 5秒后自动关闭
+        setTimeout(() => {
+            alert.style.opacity = '0';
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 300);
+        }, 5000);
+    });
+}
+
+// 表格排序功能
+function initTableSort() {
+    const tables = document.querySelectorAll('.sortable');
+    
+    tables.forEach(table => {
+        const headers = table.querySelectorAll('th');
+        
+        headers.forEach((header, index) => {
+            if (header.classList.contains('sortable')) {
+                header.addEventListener('click', function() {
+                    sortTable(table, index);
+                });
+                
+                // 添加排序图标
+                header.innerHTML += ' <i class="fas fa-sort"></i>';
+            }
+        });
+    });
+}
+
+function sortTable(table, columnIndex) {
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    const header = table.querySelectorAll('th')[columnIndex];
+    
+    // 确定排序方向
+    const isAscending = header.classList.contains('sort-asc');
+    
+    // 清除所有排序指示器
+    table.querySelectorAll('th').forEach(th => {
+        th.classList.remove('sort-asc', 'sort-desc');
+        const icon = th.querySelector('i');
+        if (icon) icon.className = 'fas fa-sort';
+    });
+    
+    // 设置新的排序方向
+    if (isAscending) {
+        header.classList.add('sort-desc');
+        header.querySelector('i').className = 'fas fa-sort-down';
+    } else {
+        header.classList.add('sort-asc');
+        header.querySelector('i').className = 'fas fa-sort-up';
+    }
+    
+    // 排序行
+    rows.sort((a, b) => {
+        const aValue = a.cells[columnIndex].textContent.trim();
+        const bValue = b.cells[columnIndex].textContent.trim();
+        
+        // 判断是否为数字
+        if (!isNaN(aValue) && !isNaN(bValue)) {
+            return isAscending ? bValue - aValue : aValue - bValue;
+        } else {
+            return isAscending 
+                ? bValue.localeCompare(aValue) 
+                : aValue.localeCompare(bValue);
+        }
+    });
+    
+    // 重新添加排序后的行
+    rows.forEach(row => tbody.appendChild(row));
+}
+
+// 模态对话框功能
+function initModals() {
+    // 关闭模态框的事件处理
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('modal-overlay') || 
+            e.target.classList.contains('modal-close') || 
+            e.target.classList.contains('btn-cancel')) {
+            closeModal(e.target.closest('.modal-overlay'));
+        }
+    });
+}
+
+// 打开模态框
+function openModal(modalId, options = {}) {
+    // 创建模态框覆盖层
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.id = `overlay-${modalId}`;
+    
+    // 创建模态框
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    
+    // 创建模态框标题
+    const header = document.createElement('div');
+    header.className = 'modal-header';
+    
+    const title = document.createElement('h3');
+    title.textContent = options.title || '提示';
+    header.appendChild(title);
+    
+    const closeButton = document.createElement('button');
+    closeButton.className = 'modal-close';
+    closeButton.innerHTML = '&times;';
+    header.appendChild(closeButton);
+    
+    // 创建模态框内容
+    const body = document.createElement('div');
+    body.className = 'modal-body';
+    body.innerHTML = options.content || '';
+    
+    // 创建模态框按钮
+    const footer = document.createElement('div');
+    footer.className = 'modal-footer';
+    
+    if (options.cancelText) {
+        const cancelButton = document.createElement('button');
+        cancelButton.className = 'btn btn-secondary btn-cancel';
+        cancelButton.textContent = options.cancelText;
+        cancelButton.onclick = options.onCancel || function() { closeModal(overlay); };
+        footer.appendChild(cancelButton);
+    }
+    
+    if (options.confirmText) {
+        const confirmButton = document.createElement('button');
+        confirmButton.className = `btn ${options.confirmButtonClass || 'btn-primary'} btn-confirm`;
+        confirmButton.textContent = options.confirmText;
+        confirmButton.onclick = options.onConfirm || function() { closeModal(overlay); };
+        footer.appendChild(confirmButton);
+    }
+    
+    // 组装模态框
+    modal.appendChild(header);
+    modal.appendChild(body);
+    modal.appendChild(footer);
+    overlay.appendChild(modal);
+    
+    // 添加到文档中
+    document.body.appendChild(overlay);
+    
+    // 显示模态框
+    setTimeout(() => {
+        overlay.style.opacity = 1;
+    }, 10);
+    
+    return overlay;
+}
+
+// 关闭模态框
+function closeModal(overlay) {
+    if (!overlay) return;
+    
+    overlay.style.opacity = 0;
+    setTimeout(() => {
+        if (overlay.parentNode) {
+            overlay.parentNode.removeChild(overlay);
+        }
+    }, 300);
+}
+
+// 删除确认功能
+function initDeleteConfirmation() {
+    // 查找所有带有data-confirm属性的元素
+    const deleteButtons = document.querySelectorAll('[data-confirm]');
+    
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const message = this.getAttribute('data-confirm') || '确定要删除此项吗？';
+            const url = this.getAttribute('href') || this.getAttribute('data-url');
+            
+            // 打开删除确认对话框
+            openModal('delete-confirm', {
+                title: '确认删除',
+                content: `<p>${message}</p><p class="text-muted">此操作不可逆，请慎重操作。</p>`,
+                confirmText: '删除',
+                confirmButtonClass: 'btn-danger',
+                cancelText: '取消',
+                onConfirm: function() {
+                    if (url) {
+                        window.location.href = url;
+                    } else if (button.form) {
+                        button.form.submit();
+                    }
+                }
+            });
+        });
+    });
+} 

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}文件上传系统{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="navbar">
+                <a href="/" class="logo">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <span>文件上传系统</span>
+                </a>
+                
+                <ul class="nav-links">
+                    <li><a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.url.path == '/dashboard' }}"><i class="fas fa-home"></i> 主页</a></li>
+                    
+                    {% if user.role == 'admin' %}
+                    <li><a href="{{ url_for('admin_panel') }}" class="{{ 'active' if request.url.path == '/admin/users' }}"><i class="fas fa-users-cog"></i> 用户管理</a></li>
+                    {% endif %}
+                    
+                    {% if user.role == 'teacher' or user.role == 'admin' %}
+                    <li><a href="{{ url_for('classes') }}" class="{{ 'active' if request.url.path == '/classes' }}"><i class="fas fa-chalkboard"></i> 班级管理</a></li>
+                    <li><a href="{{ url_for('courses') }}" class="{{ 'active' if request.url.path == '/courses' }}"><i class="fas fa-book"></i> 课程管理</a></li>
+                    <li><a href="{{ url_for('assignments') }}" class="{{ 'active' if request.url.path == '/assignments' }}"><i class="fas fa-tasks"></i> 作业管理</a></li>
+                    {% endif %}
+                    
+                    {% if user.role == 'student' %}
+                    <li><a href="{{ url_for('my_assignments') }}" class="{{ 'active' if request.url.path == '/my-assignments' }}"><i class="fas fa-file-upload"></i> 我的作业</a></li>
+                    {% endif %}
+                </ul>
+                
+                <div class="user-info">
+                    <img src="{{ url_for('static', path='/images/avatar.png') }}" alt="用户头像">
+                    <span>{{ user.username }}</span>
+                    <a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> 退出</a>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <div class="main-content">
+        <div class="container">
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+            
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+    
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 文件上传系统. 保留所有权利.</p>
+        </div>
+    </footer>
+    
+    <script src="{{ url_for('static', path='/js/main.js') }}"></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html> 
