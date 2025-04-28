@@ -8,5 +8,6 @@ wheels/
 
 # Virtual environments
 .venv
+static/uploads/
 file_upload_system.db
 uv.lock
