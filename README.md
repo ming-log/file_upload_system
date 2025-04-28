@@ -32,7 +32,7 @@ file_upload_system/
 │   └── js/               # JavaScript文件
 ├── templates/            # HTML模板
 ├── main.py               # 应用程序入口
-└── requirements.txt      # 依赖项
+└── pyproject.toml        # 依赖项
 ```
 
 ## 安装与启动
