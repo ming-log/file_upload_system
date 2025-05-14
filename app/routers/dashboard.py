@@ -16,7 +16,8 @@ async def dashboard(
     request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-    password_changed: bool = False
+    password_changed: bool = False,
+    profile_updated: bool = False
 ):
     """根据用户角色显示相应的仪表盘"""
     
@@ -45,7 +46,8 @@ async def dashboard(
                 "user": current_user, 
                 "stats": stats,
                 "recent_users": recent_users,
-                "password_changed": password_changed
+                "password_changed": password_changed,
+                "profile_updated": profile_updated
             }
         )
     
@@ -93,7 +95,8 @@ async def dashboard(
                 "stats": stats,
                 "teacher_classes": teacher_classes,
                 "recent_assignments": recent_assignments,
-                "password_changed": password_changed
+                "password_changed": password_changed,
+                "profile_updated": profile_updated
             }
         )
     
@@ -142,7 +145,8 @@ async def dashboard(
                 "user": current_user, 
                 "stats": stats,
                 "pending_assignments": pending_assignments,
-                "password_changed": password_changed
+                "password_changed": password_changed,
+                "profile_updated": profile_updated
             }
         )
     

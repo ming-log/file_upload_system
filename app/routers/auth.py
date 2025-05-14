@@ -11,7 +11,7 @@ from app.models import User
 from app.schemas import Token, UserCreate
 from app.auth import (
     authenticate_user, create_access_token, get_password_hash, get_current_user,
-    ACCESS_TOKEN_EXPIRE_MINUTES
+    ACCESS_TOKEN_EXPIRE_MINUTES, verify_password
 )
 from app.templates import templates
 
@@ -123,6 +123,7 @@ async def change_password_page(
 async def change_password(
     request: Request,
     response: Response,
+    current_password: str = Form(...),  # 添加当前密码字段
     new_password: str = Form(...),
     confirm_password: str = Form(...),
     phone: str = Form(None),
@@ -131,6 +132,14 @@ async def change_password(
     db: Session = Depends(get_db)
 ):
     """处理密码修改请求"""
+    # 验证当前密码
+    if not verify_password(current_password, current_user.hashed_password):
+        return templates.TemplateResponse(
+            "change_password.html",
+            {"request": request, "user": current_user, "error": "当前密码不正确"},
+            status_code=400
+        )
+    
     # 验证新密码和确认密码是否匹配
     if new_password != confirm_password:
         return templates.TemplateResponse(

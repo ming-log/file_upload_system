@@ -129,6 +129,13 @@
 </div>
 {% endif %}
 
+{% if profile_updated %}
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    <i class="fas fa-check-circle"></i> 个人信息修改成功！
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
+
 <!-- 管理员仪表盘 -->
 {% if user.role == 'admin' %}
 <div class="dashboard-stats">

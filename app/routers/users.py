@@ -262,6 +262,7 @@ async def profile_page(
     request: Request,
     current_user: User = Depends(get_current_user)
 ):
+    """显示用户个人资料页面"""
     return templates.TemplateResponse(
         "profile.html",
         {"request": request, "user": current_user}
@@ -343,7 +344,8 @@ async def update_profile(
     db.commit()
     db.refresh(user)
     
-    return RedirectResponse(url="/profile", status_code=303)
+    # 修改重定向到 dashboard 并添加成功提示参数
+    return RedirectResponse(url="/dashboard?profile_updated=1", status_code=303)
 
 @router.get("/change-password", response_class=HTMLResponse, name="change_password_page")
 async def change_password_page(
