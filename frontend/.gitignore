@@ -1,0 +1,40 @@
+# ---- 依赖 ----
+node_modules/
+.pnp
+.pnp.js
+
+# ---- 构建产物 ----
+dist/
+dist-ssr/
+build/
+*.local
+
+# ---- Vite / 缓存 ----
+.vite/
+.cache/
+
+# ---- 测试 / 覆盖率 ----
+coverage/
+
+# ---- 环境变量 ----
+.env
+.env.*
+!.env.example
+
+# ---- 日志 ----
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---- 编辑器 / OS ----
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "homework-upload-system"
+version = "0.1.0"
+description = "作业文件上传系统 - 后端服务 (FastAPI)"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "homework-upload-system" }]
+
+dependencies = [
+    "fastapi>=0.110,<1.0",
+    "uvicorn[standard]>=0.27,<1.0",
+    "sqlalchemy>=2.0,<3.0",
+    "pydantic>=2.6,<3.0",
+    "pydantic-settings>=2.1,<3.0",
+    "python-jose[cryptography]>=3.3,<4.0",
+    "minio>=7.2,<8.0",
+    "aiosmtplib>=3.0,<4.0",
+    "python-multipart>=0.0.9",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8.0,<9.0",
+    "pytest-asyncio>=0.23,<1.0",
+    "hypothesis>=6.98,<7.0",
+    "httpx>=0.27,<1.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-ra -q"
+asyncio_mode = "auto"
+markers = [
+    "property: property-based tests (Hypothesis)",
+    "unit: example/edge-case unit tests",
+    "integration: tests that exercise external dependencies (MinIO, SMTP)",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
