@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Plus, Trash2, Edit2, ClipboardList, X, AlertCircle, Eye, Clock, CheckCircle2, XCircle, FileText, Download } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useApp } from '../../context';
+import { submissionsApi, ApiError } from '../../api';
 import type { Assignment } from '../../types';
 import { FILE_TYPE_OPTIONS } from '../../types';
 
@@ -35,9 +36,9 @@ function AssignmentStatus({ deadline }: { deadline: string }) {
   const diff = dl.getTime() - now.getTime();
   const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
 
-  if (diff < 0) return <span className="flex items-center gap-1 text-xs text-red-600 bg-red-50 px-2 py-0.5 rounded-full"><XCircle className="w-3 h-3" />已截止</span>;
-  if (days <= 3) return <span className="flex items-center gap-1 text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full"><Clock className="w-3 h-3" />即将截止</span>;
-  return <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full"><CheckCircle2 className="w-3 h-3" />进行中</span>;
+  if (diff < 0) return <span className="inline-flex items-center gap-1 text-xs text-red-600 bg-red-50 px-2 py-0.5 rounded-full whitespace-nowrap"><XCircle className="w-3 h-3" />已截止</span>;
+  if (days <= 3) return <span className="inline-flex items-center gap-1 text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full whitespace-nowrap"><Clock className="w-3 h-3" />即将截止</span>;
+  return <span className="inline-flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full whitespace-nowrap"><CheckCircle2 className="w-3 h-3" />进行中</span>;
 }
 
 export function AssignmentsPage() {
@@ -53,6 +54,51 @@ export function AssignmentsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formError, setFormError] = useState('');
   const [search, setSearch] = useState('');
+  const [exportingId, setExportingId] = useState<string | null>(null);
+
+  // 下载单个提交文件（带鉴权头，故用 fetch 取 Blob 再触发下载）。
+  const downloadFile = async (submissionId: string, storageId: string, name: string) => {
+    try {
+      const headers: Record<string, string> = {};
+      const token = localStorage.getItem('auth_token');
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const res = await fetch(submissionsApi.fileUrl(submissionId, storageId), { headers });
+      if (!res.ok) throw new ApiError(res.status, '下载失败');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      // eslint-disable-next-line no-alert
+      alert(e instanceof ApiError ? (e.message || '下载失败') : '下载失败，请稍后重试');
+    }
+  };
+
+  // 一键导出指定作业的全部提交（ZIP：文件 + 提交状态表）。
+  const handleExportAssignment = async (assignmentId: string) => {
+    setExportingId(assignmentId);
+    try {
+      const { blob, filename } = await submissionsApi.exportAssignment(assignmentId);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      // eslint-disable-next-line no-alert
+      alert(e instanceof ApiError ? (e.message || '导出失败') : '导出失败，请稍后重试');
+    } finally {
+      setExportingId(null);
+    }
+  };
 
   const filtered = myAssignments.filter(a => {
     const q = search.toLowerCase();
@@ -157,16 +203,16 @@ export function AssignmentsPage() {
       </div>
 
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        <table className="w-full">
+        <table className="w-full table-fixed">
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50">
-              <th className="text-left px-4 py-3 text-xs text-gray-500 uppercase tracking-wide">作业标题</th>
-              <th className="text-left px-4 py-3 text-xs text-gray-500 uppercase tracking-wide">关联课程</th>
-              <th className="text-left px-4 py-3 text-xs text-gray-500 uppercase tracking-wide">文件限制</th>
-              <th className="text-left px-4 py-3 text-xs text-gray-500 uppercase tracking-wide">截止时间</th>
-              <th className="text-left px-4 py-3 text-xs text-gray-500 uppercase tracking-wide">状态</th>
-              <th className="text-left px-4 py-3 text-xs text-gray-500 uppercase tracking-wide">提交</th>
-              <th className="text-right px-4 py-3 text-xs text-gray-500 uppercase tracking-wide">操作</th>
+              <th className="text-left px-4 py-3 text-xs text-gray-500 uppercase tracking-wide w-[26%]">作业标题</th>
+              <th className="text-left px-4 py-3 text-xs text-gray-500 uppercase tracking-wide w-[14%]">关联课程</th>
+              <th className="text-left px-4 py-3 text-xs text-gray-500 uppercase tracking-wide w-[16%]">文件限制</th>
+              <th className="text-left px-4 py-3 text-xs text-gray-500 uppercase tracking-wide whitespace-nowrap">截止时间</th>
+              <th className="text-left px-4 py-3 text-xs text-gray-500 uppercase tracking-wide whitespace-nowrap">状态</th>
+              <th className="text-left px-4 py-3 text-xs text-gray-500 uppercase tracking-wide whitespace-nowrap">提交</th>
+              <th className="text-right px-4 py-3 text-xs text-gray-500 uppercase tracking-wide whitespace-nowrap">操作</th>
             </tr>
           </thead>
           <tbody>
@@ -183,10 +229,10 @@ export function AssignmentsPage() {
               return (
                 <tr key={a.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3">
-                    <p className="text-sm text-gray-800 font-medium">{a.title}</p>
+                    <p className="text-sm text-gray-800 font-medium truncate">{a.title}</p>
                     <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{a.content}</p>
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{getCourseName(a.courseId)}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600 truncate">{getCourseName(a.courseId)}</td>
                   <td className="px-4 py-3 text-sm text-gray-500">
                     <div className="flex flex-wrap gap-1">
                       {a.allowedFileTypes.slice(0, 3).map(t => (
@@ -198,14 +244,14 @@ export function AssignmentsPage() {
                     </div>
                     <p className="text-xs text-gray-400 mt-0.5">≤ {a.maxFileSizeMB}MB</p>
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-500">
+                  <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">
                     {new Date(a.deadline).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                   </td>
-                  <td className="px-4 py-3"><AssignmentStatus deadline={a.deadline} /></td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 whitespace-nowrap"><AssignmentStatus deadline={a.deadline} /></td>
+                  <td className="px-4 py-3 whitespace-nowrap">
                     <button
                       onClick={() => setViewSubmissions(a.id)}
-                      className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 transition-colors"
+                      className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 transition-colors"
                     >
                       <Eye className="w-3.5 h-3.5" />
                       {subs.length}/{totalStudents}
@@ -213,6 +259,18 @@ export function AssignmentsPage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => handleExportAssignment(a.id)}
+                        disabled={exportingId === a.id || subs.length === 0}
+                        title={subs.length === 0 ? '暂无提交可下载' : '下载该作业全部提交文件与提交状态表'}
+                        className="p-1.5 rounded-lg hover:bg-green-50 text-gray-400 hover:text-green-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {exportingId === a.id ? (
+                          <div className="w-4 h-4 border-2 border-green-500/30 border-t-green-600 rounded-full animate-spin" />
+                        ) : (
+                          <Download className="w-4 h-4" />
+                        )}
+                      </button>
                       <button onClick={() => openEdit(a)} className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-colors">
                         <Edit2 className="w-4 h-4" />
                       </button>
@@ -357,7 +415,23 @@ export function AssignmentsPage() {
                 <Dialog.Title className="text-lg text-gray-900">{selectedAssignment?.title}</Dialog.Title>
                 <p className="text-sm text-gray-500">提交记录 - {assignmentSubmissions.length} / {viewSubmissions ? getAssignmentStudents(viewSubmissions).length : 0} 人已提交</p>
               </div>
-              <Dialog.Close className="p-1 rounded-lg hover:bg-gray-100 text-gray-400"><X className="w-5 h-5" /></Dialog.Close>
+              <div className="flex items-center gap-2">
+                {selectedAssignment && (
+                  <button
+                    onClick={() => handleExportAssignment(selectedAssignment.id)}
+                    disabled={exportingId === selectedAssignment.id}
+                    title="下载该作业全部提交文件与提交状态表（ZIP）"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 disabled:opacity-60 transition-colors"
+                  >
+                    {exportingId === selectedAssignment.id ? (
+                      <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />导出中...</>
+                    ) : (
+                      <><Download className="w-4 h-4" />下载全部提交</>
+                    )}
+                  </button>
+                )}
+                <Dialog.Close className="p-1 rounded-lg hover:bg-gray-100 text-gray-400"><X className="w-5 h-5" /></Dialog.Close>
+              </div>
             </div>
             <div className="overflow-y-auto flex-1">
               {viewSubmissions && (() => {
@@ -399,11 +473,18 @@ export function AssignmentsPage() {
                               {sub ? (
                                 <div className="space-y-1">
                                   {sub.files.map((f, i) => (
-                                    <div key={i} className="flex items-center gap-1.5 text-xs text-gray-600">
+                                    <button
+                                      key={i}
+                                      onClick={() => f.storageId && downloadFile(sub.id, f.storageId, f.name)}
+                                      disabled={!f.storageId}
+                                      title={f.storageId ? '点击下载' : '无法下载'}
+                                      className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-blue-600 disabled:hover:text-gray-600 disabled:cursor-not-allowed transition-colors"
+                                    >
                                       <FileText className="w-3 h-3 text-blue-500" />
-                                      <span className="truncate max-w-[140px]">{f.name}</span>
+                                      <span className="truncate max-w-[140px] underline-offset-2 hover:underline">{f.name}</span>
                                       <span className="text-gray-400">({formatFileSize(f.size)})</span>
-                                    </div>
+                                      {f.storageId && <Download className="w-3 h-3 text-gray-300" />}
+                                    </button>
                                   ))}
                                   {sub.comment && <p className="text-xs text-gray-400 italic">"{sub.comment}"</p>}
                                 </div>

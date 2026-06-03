@@ -62,6 +62,8 @@ export function UsersPage() {
   const handleSave = () => {
     if (!form.account.trim()) { setFormError('账号不能为空'); return; }
     if (!form.name.trim()) { setFormError('姓名不能为空'); return; }
+    if (!form.email.trim()) { setFormError('邮箱不能为空'); return; }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email.trim())) { setFormError('邮箱格式不正确'); return; }
     // Check duplicate account
     const dup = users.find(u => u.account === form.account.trim() && u.id !== editingId);
     if (dup) { setFormError('该账号已存在'); return; }
@@ -83,12 +85,14 @@ export function UsersPage() {
     const errors: string[] = [];
     lines.forEach((line, i) => {
       const parts = line.split(',').map(p => p.trim());
-      if (parts.length < 3) { errors.push(`第${i + 1}行格式错误`); return; }
+      if (parts.length < 4) { errors.push(`第${i + 1}行格式错误（需要：角色,账号,姓名,邮箱）`); return; }
       const [roleStr, account, name, email = '', password = ''] = parts;
       const role = roleStr === '管理员' ? 'admin' : roleStr === '教师' ? 'teacher' : null;
       if (!role) { errors.push(`第${i + 1}行角色无效（应为"管理员"或"教师"）`); return; }
       if (!account) { errors.push(`第${i + 1}行账号为空`); return; }
       if (!name) { errors.push(`第${i + 1}行姓名为空`); return; }
+      if (!email) { errors.push(`第${i + 1}行邮箱为空（邮箱为必填项）`); return; }
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { errors.push(`第${i + 1}行邮箱"${email}"格式不正确`); return; }
       if (users.find(u => u.account === account)) { errors.push(`第${i + 1}行账号"${account}"已存在`); return; }
       rows.push({ role: role as 'admin' | 'teacher', account, name, email, password });
     });
@@ -229,7 +233,7 @@ export function UsersPage() {
               {[
                 { key: 'account', label: '账号', placeholder: '登录账号', required: true },
                 { key: 'name', label: '姓名', placeholder: '真实姓名', required: true },
-                { key: 'email', label: '邮箱', placeholder: '电子邮箱（可选）' },
+                { key: 'email', label: '邮箱', placeholder: '电子邮箱（必填）', required: true },
                 { key: 'password', label: '密码', placeholder: '登录密码（留空则默认：minglog666）' },
               ].map(f => (
                 <div key={f.key}>
@@ -273,11 +277,11 @@ export function UsersPage() {
               <Dialog.Close className="p-1 rounded-lg hover:bg-gray-100 text-gray-400"><X className="w-5 h-5" /></Dialog.Close>
             </div>
             <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-500 mb-3 font-mono">
-              格式：角色,账号,姓名,邮箱(可选),密码(可选)<br />
-              说明：密码留空时默认为 minglog666<br />
+              格式：角色,账号,姓名,邮箱,密码(可选)<br />
+              说明：邮箱为必填项；密码留空时默认为 minglog666<br />
               示例：<br />
               教师,teacher002,李老师,li@school.edu,pass123<br />
-              管理员,admin2,副管理员,,
+              管理员,admin2,副管理员,admin2@school.edu,
             </div>
             <textarea
               value={bulkText}

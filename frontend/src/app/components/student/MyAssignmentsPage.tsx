@@ -1,7 +1,8 @@
 import { useState, useRef } from 'react';
-import { FileText, Upload, CheckCircle2, Clock, XCircle, X, AlertCircle, Paperclip, Trash2, Send } from 'lucide-react';
+import { FileText, Upload, CheckCircle2, Clock, XCircle, X, AlertCircle, Paperclip, Trash2, Send, Download } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useApp } from '../../context';
+import { submissionsApi, ApiError } from '../../api';
 import type { Assignment } from '../../types';
 
 function getStatus(deadline: string, submitted: boolean) {
@@ -50,6 +51,29 @@ export function MyAssignmentsPage() {
 
   const getMySubmission = (assignmentId: string) =>
     submissions.find(s => s.assignmentId === assignmentId && s.studentId === currentUser?.id);
+
+  // 下载自己提交的文件（带鉴权头取 Blob 再触发浏览器下载）。
+  const downloadFile = async (submissionId: string, storageId: string, name: string) => {
+    try {
+      const headers: Record<string, string> = {};
+      const token = localStorage.getItem('auth_token');
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const res = await fetch(submissionsApi.fileUrl(submissionId, storageId), { headers });
+      if (!res.ok) throw new ApiError(res.status, '下载失败');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      // eslint-disable-next-line no-alert
+      alert(e instanceof ApiError ? (e.message || '下载失败') : '下载失败，请稍后重试');
+    }
+  };
 
   const openSubmit = (a: Assignment) => {
     setSelectedAssignment(a);
@@ -199,9 +223,16 @@ export function MyAssignmentsPage() {
                               </p>
                               <div className="flex flex-wrap gap-2">
                                 {mySub.files.map((f, i) => (
-                                  <span key={i} className="flex items-center gap-1 text-xs bg-white text-green-700 border border-green-200 px-2 py-0.5 rounded-full">
+                                  <button
+                                    key={i}
+                                    onClick={() => f.storageId && downloadFile(mySub.id, f.storageId, f.name)}
+                                    disabled={!f.storageId}
+                                    title={f.storageId ? '点击下载' : '无法下载'}
+                                    className="flex items-center gap-1 text-xs bg-white text-green-700 border border-green-200 px-2 py-0.5 rounded-full hover:bg-green-100 disabled:cursor-not-allowed transition-colors"
+                                  >
                                     <Paperclip className="w-3 h-3" />{f.name} ({formatFileSize(f.size)})
-                                  </span>
+                                    {f.storageId && <Download className="w-3 h-3" />}
+                                  </button>
                                 ))}
                               </div>
                               {mySub.comment && <p className="text-xs text-green-600 mt-1 italic">备注：{mySub.comment}</p>}

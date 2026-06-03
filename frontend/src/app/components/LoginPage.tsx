@@ -1,23 +1,65 @@
-import { useState } from 'react';
-import { BookOpen, Lock, User, AlertCircle } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { BookOpen, Lock, User, AlertCircle, ShieldCheck, RefreshCw } from 'lucide-react';
 import { useApp } from '../context';
+import { authApi, ApiError } from '../api';
 
 export function LoginPage() {
   const { login } = useApp();
   const [account, setAccount] = useState('');
   const [password, setPassword] = useState('');
+  const [captcha, setCaptcha] = useState('');
+  const [captchaId, setCaptchaId] = useState('');
+  const [captchaImage, setCaptchaImage] = useState('');
+  const [captchaLoading, setCaptchaLoading] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const refreshCaptcha = useCallback(async () => {
+    setCaptchaLoading(true);
+    setCaptcha('');
+    try {
+      const res = await authApi.captcha();
+      setCaptchaId(res.captchaId);
+      setCaptchaImage(res.image);
+    } catch {
+      setCaptchaImage('');
+    } finally {
+      setCaptchaLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshCaptcha();
+  }, [refreshCaptcha]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!account.trim()) { setError('请输入账号'); return; }
     if (!password.trim()) { setError('请输入密码'); return; }
+    if (!captcha.trim()) { setError('请输入验证码'); return; }
     setLoading(true);
     setError('');
-    const ok = await login(account.trim(), password.trim());
-    if (!ok) setError('账号或密码错误，请重试');
-    setLoading(false);
+    try {
+      await login(account.trim(), password.trim(), captchaId, captcha.trim());
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (err.code === 'INVALID_CAPTCHA') {
+          setError('验证码错误或已过期，请重试');
+          refreshCaptcha();
+        } else if (err.code === 'INVALID_CREDENTIALS' || err.status === 401) {
+          setError('账号或密码错误，请重试');
+          refreshCaptcha();
+        } else {
+          setError(err.message || '登录失败，请重试');
+          refreshCaptcha();
+        }
+      } else {
+        setError('登录失败，请重试');
+        refreshCaptcha();
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const demoAccounts = [
@@ -68,6 +110,37 @@ export function LoginPage() {
                 />
               </div>
             </div>
+            {/* 验证码 */}
+            <div>
+              <label className="block text-sm text-gray-700 mb-1.5">验证码</label>
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    value={captcha}
+                    onChange={e => setCaptcha(e.target.value)}
+                    placeholder="请输入图中字符"
+                    autoComplete="off"
+                    maxLength={8}
+                    className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900 uppercase tracking-widest"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={refreshCaptcha}
+                  title="点击刷新验证码"
+                  className="relative h-[46px] w-[120px] flex-shrink-0 rounded-lg border border-gray-200 bg-gray-50 overflow-hidden flex items-center justify-center hover:border-blue-400 transition-colors"
+                >
+                  {captchaLoading || !captchaImage ? (
+                    <RefreshCw className={`w-5 h-5 text-gray-400 ${captchaLoading ? 'animate-spin' : ''}`} />
+                  ) : (
+                    <img src={captchaImage} alt="验证码" className="h-full w-full object-cover" />
+                  )}
+                </button>
+              </div>
+              <p className="text-xs text-gray-400 mt-1">看不清？点击图片刷新</p>
+            </div>
             {error && (
               <div className="flex items-center gap-2 text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2 text-sm">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -88,7 +161,7 @@ export function LoginPage() {
 
         {/* Demo accounts */}
         <div className="mt-6 bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-          <p className="text-xs text-gray-500 mb-3">演示账号（点击快速填入）</p>
+          <p className="text-xs text-gray-500 mb-3">演示账号（点击快速填入账号密码，验证码仍需手动输入）</p>
           <div className="space-y-2">
             {demoAccounts.map(d => (
               <button

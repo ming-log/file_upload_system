@@ -13,6 +13,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import __version__
+from app.config import load_app_env
+
+# 尽早加载 .env（在导入依赖/路由前），确保存储、邮件等读取到正确配置。
+load_app_env()
+
 from app.api.deps import _session_factory
 from app.api.routes import ALL_ROUTERS
 from app.seed import seed_initial_data

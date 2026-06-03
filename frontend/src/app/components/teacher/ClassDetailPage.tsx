@@ -49,6 +49,8 @@ export function ClassDetailPage() {
   const handleSave = () => {
     if (!form.studentId.trim()) { setFormError('学号不能为空'); return; }
     if (!form.name.trim()) { setFormError('姓名不能为空'); return; }
+    if (!form.email.trim()) { setFormError('邮箱不能为空'); return; }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email.trim())) { setFormError('邮箱格式不正确'); return; }
     const dup = students.find(s => s.studentId === form.studentId.trim() && s.id !== editingId);
     if (dup) { setFormError('该学号已存在'); return; }
     if (editingId) {
@@ -71,10 +73,12 @@ export function ClassDetailPage() {
 
     lines.forEach((line, i) => {
       const parts = line.split(',').map(p => p.trim());
-      if (parts.length < 2) { errors.push(`第${i + 1}行格式错误（至少需要学号和姓名）`); return; }
+      if (parts.length < 3) { errors.push(`第${i + 1}行格式错误（需要：学号,姓名,邮箱）`); return; }
       const [studentId, name, email = '', password = 'minglog666'] = parts;
       if (!studentId) { errors.push(`第${i + 1}行学号为空`); return; }
       if (!name) { errors.push(`第${i + 1}行姓名为空`); return; }
+      if (!email) { errors.push(`第${i + 1}行邮箱为空（邮箱为必填项）`); return; }
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { errors.push(`第${i + 1}行邮箱"${email}"格式不正确`); return; }
       if (allIds.includes(studentId)) { errors.push(`第${i + 1}行学号"${studentId}"已存在`); return; }
       rows.push({ studentId, name, email, password: password || 'minglog666', classId: selectedClassId! });
       allIds.push(studentId);
@@ -190,7 +194,7 @@ export function ClassDetailPage() {
               {[
                 { key: 'studentId', label: '学号', placeholder: '例：2022001', required: true },
                 { key: 'name', label: '姓名', placeholder: '学生真实姓名', required: true },
-                { key: 'email', label: '邮箱', placeholder: '电子邮箱（可选）' },
+                { key: 'email', label: '邮箱', placeholder: '电子邮箱（必填）', required: true },
                 { key: 'password', label: '密码', placeholder: '默认：minglog666' },
               ].map(f => (
                 <div key={f.key}>
@@ -233,10 +237,11 @@ export function ClassDetailPage() {
               <Dialog.Close className="p-1 rounded-lg hover:bg-gray-100 text-gray-400"><X className="w-5 h-5" /></Dialog.Close>
             </div>
             <div className="bg-blue-50 rounded-lg p-3 text-xs text-blue-700 mb-3 font-mono">
-              格式：学号,姓名,邮箱(可选),密码(可选)<br />
+              格式：学号,姓名,邮箱,密码(可选)<br />
+              说明：邮箱为必填项；密码留空时默认为 minglog666<br />
               示例：<br />
               2022001,张三,zhangsan@email.com,minglog666<br />
-              2022002,李四,,<br />
+              2022002,李四,lisi@email.com,<br />
               2022003,王五,wangwu@email.com
             </div>
             <textarea

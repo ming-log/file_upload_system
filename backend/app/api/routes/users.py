@@ -37,7 +37,7 @@ class UserPayload(BaseModel):
     role: str = Field(..., description="用户角色：admin / teacher")
     account: str = Field(..., description="登录账号（系统内唯一）")
     name: str = Field(default="", description="姓名")
-    email: str = Field(default="", description="邮箱")
+    email: str = Field(..., description="邮箱（必填）")
     password: str = Field(default="", description="密码，留空默认 minglog666")
 
 
@@ -61,7 +61,10 @@ def _validate_payload(repo: Repository, body: UserPayload, *, exclude_id: Option
         return ErrorCode.MISSING_REQUIRED_FIELD
     if body.role not in _MANAGED_ROLES:
         return ErrorCode.INVALID_ROLE
-    if validate_required(body.email) and not validate_email(body.email).ok:
+    # 邮箱为必填项。
+    if not validate_required(body.email):
+        return ErrorCode.MISSING_REQUIRED_FIELD
+    if not validate_email(body.email).ok:
         return ErrorCode.INVALID_EMAIL_FORMAT
     if repo.account_exists(body.account, exclude_id=exclude_id):
         return ErrorCode.DUPLICATE_ACCOUNT

@@ -49,6 +49,8 @@ ERROR_CODE_TO_HTTP_STATUS: dict[ErrorCode, int] = {
     ErrorCode.INVALID_CREDENTIALS: status.HTTP_401_UNAUTHORIZED,
     # 需要重置密码 | 401 | 需求 1.5
     ErrorCode.PASSWORD_RESET_REQUIRED: status.HTTP_401_UNAUTHORIZED,
+    # 验证码错误或已过期 | 400 | 登录验证码
+    ErrorCode.INVALID_CAPTCHA: status.HTTP_400_BAD_REQUEST,
     # 未认证（令牌缺失/无效/过期） | 401 | 需求 1.4
     ErrorCode.UNAUTHENTICATED: status.HTTP_401_UNAUTHORIZED,
     # 权限不足 | 403 | 需求 4.2, 5.2, 6.8, 8.2, 9.2
@@ -104,6 +106,7 @@ DEFAULT_ERROR_MESSAGES: dict[ErrorCode, str] = {
     ErrorCode.MISSING_REQUIRED_FIELD: "必填字段缺失",
     ErrorCode.INVALID_CREDENTIALS: "账号或密码错误",
     ErrorCode.PASSWORD_RESET_REQUIRED: "需要重置密码",
+    ErrorCode.INVALID_CAPTCHA: "验证码错误或已过期",
     ErrorCode.UNAUTHENTICATED: "未认证：令牌缺失、无效或已过期",
     ErrorCode.FORBIDDEN: "权限不足",
     ErrorCode.INVALID_EMAIL_FORMAT: "邮箱格式错误",

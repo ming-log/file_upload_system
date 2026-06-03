@@ -246,6 +246,8 @@ class EmailService:
         smtp_password: Optional[str] = None,
         smtp_use_tls: Optional[bool] = None,
         sender_address: Optional[str] = None,
+        smtp_tls_mode: Optional[str] = None,
+        smtp_allow_invalid_certs: Optional[bool] = None,
     ) -> None:
         # 注入点：未显式提供时回退到基于 aiosmtplib 的默认发送实现。
         self._sender: SendFn = sender if sender is not None else self._smtp_send
@@ -264,16 +266,56 @@ class EmailService:
         self.smtp_port = smtp_port or int(os.getenv("SMTP_PORT", "25"))
         self.smtp_username = smtp_username or os.getenv("SMTP_USERNAME")
         self.smtp_password = smtp_password or os.getenv("SMTP_PASSWORD")
-        if smtp_use_tls is None:
-            self.smtp_use_tls = os.getenv("SMTP_USE_TLS", "false").strip().lower() in {
+
+        # TLS 模式：auto / ssl（隐式 TLS）/ starttls / none。
+        # 兼容旧的 SMTP_USE_TLS 布尔开关与显式 smtp_use_tls 参数。
+        mode = (smtp_tls_mode or os.getenv("SMTP_TLS") or "auto").strip().lower()
+        self.smtp_tls_mode = mode
+
+        # 解析最终的 use_tls / start_tls 两个开关（aiosmtplib 语义）：
+        #   use_tls=True  -> 连接即隐式 TLS（适用于 465 端口）
+        #   start_tls=True -> 明文连接后 STARTTLS 升级（适用于 587 端口）
+        if smtp_use_tls is not None:
+            # 显式布尔参数优先（隐式 TLS）。
+            self.smtp_use_tls = smtp_use_tls
+            self.smtp_start_tls = False
+        elif mode == "ssl":
+            self.smtp_use_tls, self.smtp_start_tls = True, False
+        elif mode == "starttls":
+            self.smtp_use_tls, self.smtp_start_tls = False, True
+        elif mode == "none":
+            self.smtp_use_tls, self.smtp_start_tls = False, False
+        elif mode == "auto":
+            # 按端口推断：465 -> 隐式 TLS；587 -> STARTTLS；其它 -> 不加密。
+            if self.smtp_port == 465:
+                self.smtp_use_tls, self.smtp_start_tls = True, False
+            elif self.smtp_port == 587:
+                self.smtp_use_tls, self.smtp_start_tls = False, True
+            else:
+                self.smtp_use_tls, self.smtp_start_tls = False, False
+        else:
+            # 兼容旧开关。
+            legacy = os.getenv("SMTP_USE_TLS", "false").strip().lower() in {
                 "true",
                 "1",
                 "yes",
             }
+            self.smtp_use_tls, self.smtp_start_tls = legacy, False
+
+        # 是否允许无效/自签名证书（true 时跳过证书校验）。
+        if smtp_allow_invalid_certs is not None:
+            self.smtp_allow_invalid_certs = smtp_allow_invalid_certs
         else:
-            self.smtp_use_tls = smtp_use_tls
-        self.sender_address = sender_address or os.getenv(
-            "SMTP_SENDER", "no-reply@homework-upload-system.local"
+            self.smtp_allow_invalid_certs = os.getenv(
+                "SMTP_ALLOW_INVALID_CERTS", "false"
+            ).strip().lower() in {"true", "1", "yes"}
+
+        # 发件人地址：优先 SMTP_FROM（与本次配置一致），回退 SMTP_SENDER。
+        self.sender_address = (
+            sender_address
+            or os.getenv("SMTP_FROM")
+            or os.getenv("SMTP_SENDER")
+            or "no-reply@homework-upload-system.local"
         )
 
     def build_email_body(
@@ -302,14 +344,26 @@ class EmailService:
         message["Subject"] = self.subject
         message.set_content(body)
 
-        await aiosmtplib.send(
-            message,
-            hostname=self.smtp_host,
-            port=self.smtp_port,
-            username=self.smtp_username,
-            password=self.smtp_password,
-            use_tls=self.smtp_use_tls,
-        )
+        send_kwargs: dict[str, object] = {
+            "hostname": self.smtp_host,
+            "port": self.smtp_port,
+            "username": self.smtp_username,
+            "password": self.smtp_password,
+            "use_tls": self.smtp_use_tls,
+            "start_tls": self.smtp_start_tls,
+            "validate_certs": not self.smtp_allow_invalid_certs,
+        }
+        # 允许无效证书时，提供一个不校验主机名/证书链的 SSL 上下文，
+        # 以兼容自签名或主机名不匹配的 SMTP 服务（需求：SMTP_ALLOW_INVALID_CERTS）。
+        if self.smtp_allow_invalid_certs:
+            import ssl
+
+            context = ssl.create_default_context()
+            context.check_hostname = False
+            context.verify_mode = ssl.CERT_NONE
+            send_kwargs["tls_context"] = context
+
+        await aiosmtplib.send(message, **send_kwargs)
 
     async def notify_submission(
         self, submission: SubmissionRecord, student_email: Optional[str]

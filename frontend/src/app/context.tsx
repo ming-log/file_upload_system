@@ -37,7 +37,7 @@ interface AppContextType {
   selectedClassId: string | null;
   selectedAssignmentId: string | null;
   loading: boolean;
-  login: (account: string, password: string) => Promise<boolean>;
+  login: (account: string, password: string, captchaId?: string, captcha?: string) => Promise<boolean>;
   logout: () => void;
   navigate: (page: Page, opts?: { classId?: string; assignmentId?: string }) => void;
   // Users
@@ -135,18 +135,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (currentUser) await loadAll(currentUser);
   }, [currentUser, loadAll]);
 
-  const login = useCallback(async (account: string, password: string): Promise<boolean> => {
+  const login = useCallback(async (account: string, password: string, captchaId?: string, captcha?: string): Promise<boolean> => {
     try {
-      const res = await authApi.login(account, password);
+      const res = await authApi.login(account, password, captchaId, captcha);
       setToken(res.access_token);
       setCurrentUser(res.user);
       setCurrentPage(initialPageFor(res.user));
       await loadAll(res.user);
       return true;
     } catch (e) {
-      if (e instanceof ApiError) return false;
+      if (e instanceof ApiError) throw e;
       console.error(e);
-      return false;
+      throw new ApiError(0, '网络错误，请稍后重试');
     }
   }, [loadAll]);
 

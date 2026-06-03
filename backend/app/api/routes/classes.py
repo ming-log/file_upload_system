@@ -50,7 +50,7 @@ class ClassPayload(BaseModel):
 class StudentPayload(BaseModel):
     studentId: str = Field(..., description="学号（系统内唯一）")
     name: str = Field(..., description="姓名")
-    email: str = Field(default="", description="邮箱")
+    email: str = Field(..., description="邮箱（必填）")
     password: str = Field(default="", description="密码，留空默认 minglog666")
 
 
@@ -81,7 +81,10 @@ def _validate_student(
 ) -> Optional[ErrorCode]:
     if not validate_required(body.studentId) or not validate_required(body.name):
         return ErrorCode.MISSING_REQUIRED_FIELD
-    if validate_required(body.email) and not validate_email(body.email).ok:
+    # 邮箱为必填项。
+    if not validate_required(body.email):
+        return ErrorCode.MISSING_REQUIRED_FIELD
+    if not validate_email(body.email).ok:
         return ErrorCode.INVALID_EMAIL_FORMAT
     if repo.student_id_exists(body.studentId, exclude_id=exclude_id):
         return ErrorCode.DUPLICATE_STUDENT_ID

@@ -25,6 +25,11 @@ from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
+from app.config import load_app_env
+
+# 尽早加载 .env，使下方存储/邮件/认证按需读取环境变量时配置已生效。
+load_app_env()
+
 from app.adapters.email_service import EmailService
 from app.adapters.storage_service import (
     LocalDiskStorageService,
@@ -41,6 +46,7 @@ from app.db import (
 )
 from app.repository import Repository
 from app.services.auth_service import AuthService
+from app.services.captcha_service import CaptchaService
 
 __all__ = [
     "CurrentUser",
@@ -54,6 +60,7 @@ __all__ = [
     "require_roles",
     "get_storage_service",
     "get_email_service",
+    "get_captcha_service",
 ]
 
 
@@ -140,12 +147,22 @@ def _default_email_service() -> EmailService:
     return EmailService()
 
 
+@lru_cache(maxsize=1)
+def _default_captcha_service() -> CaptchaService:
+    """构造（并缓存）进程级验证码服务，使生成与校验共享同一内存存储。"""
+    return CaptchaService()
+
+
 def get_storage_service() -> StorageService:
     return _default_storage_service()
 
 
 def get_email_service() -> EmailService:
     return _default_email_service()
+
+
+def get_captcha_service() -> CaptchaService:
+    return _default_captcha_service()
 
 
 # --------------------------------------------------------------------------- #

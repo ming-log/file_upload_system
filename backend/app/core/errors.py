@@ -30,6 +30,8 @@ class ErrorCode(str, Enum):
     INVALID_CREDENTIALS = "INVALID_CREDENTIALS"
     # 需要重置密码 | HTTP 401 | 需求 1.5
     PASSWORD_RESET_REQUIRED = "PASSWORD_RESET_REQUIRED"
+    # 验证码错误或已过期 | HTTP 400 | 登录验证码
+    INVALID_CAPTCHA = "INVALID_CAPTCHA"
     # 未认证（令牌缺失/无效/过期） | HTTP 401 | 需求 1.4
     UNAUTHENTICATED = "UNAUTHENTICATED"
     # 权限不足 | HTTP 403 | 需求 4.2, 5.2, 6.8, 8.2, 9.2

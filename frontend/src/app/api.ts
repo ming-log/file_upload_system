@@ -76,6 +76,11 @@ export interface LoginResponse {
   user: AuthUser;
 }
 
+export interface CaptchaResponse {
+  captchaId: string;
+  image: string;
+}
+
 export interface BatchResult {
   success_count: number;
   failure_count: number;
@@ -83,8 +88,9 @@ export interface BatchResult {
 }
 
 export const authApi = {
-  login: (account: string, password: string) =>
-    api.post<LoginResponse>('/auth/login', { account, password }),
+  captcha: () => api.get<CaptchaResponse>('/auth/captcha'),
+  login: (account: string, password: string, captchaId?: string, captcha?: string) =>
+    api.post<LoginResponse>('/auth/login', { account, password, captchaId, captcha }),
 };
 
 export const usersApi = {
@@ -149,6 +155,38 @@ export const submissionsApi = {
     fd.append('comment', comment);
     return api.post<Submission>(`/assignments/${assignmentId}/submissions`, fd);
   },
+  // 下载单个提交文件。storageId 为含 "/" 的分层对象键，必须经查询参数传递（编码后）。
   fileUrl: (submissionId: string, storageId: string) =>
-    `${BASE}/submissions/${submissionId}/files/${storageId}`,
+    `${BASE}/submissions/${submissionId}/file?storageId=${encodeURIComponent(storageId)}`,
+  // 导出某课程全部提交（ZIP：文件 + 提交状态表）。返回 Blob 以便浏览器下载。
+  exportCourse: (courseId: string) => downloadZip(`${BASE}/courses/${courseId}/submissions/export`),
+  // 导出某作业全部提交（ZIP：文件 + 提交状态表）。
+  exportAssignment: (assignmentId: string) =>
+    downloadZip(`${BASE}/assignments/${assignmentId}/submissions/export`),
 };
+
+// 通用：带鉴权头请求一个会返回文件流的端点，解析文件名并返回 Blob。
+async function downloadZip(url: string): Promise<{ blob: Blob; filename: string }> {
+  const headers: Record<string, string> = {};
+  const token = getToken();
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(url, { headers });
+  if (!res.ok) {
+    const text = await res.text();
+    let message = res.statusText;
+    try {
+      const data = text ? JSON.parse(text) : null;
+      const detail = data?.detail;
+      message = typeof detail === 'object' ? detail?.message : (detail || message);
+    } catch { /* 非 JSON 响应，保留状态文本 */ }
+    throw new ApiError(res.status, message || '导出失败');
+  }
+  let filename = '提交汇总.zip';
+  const cd = res.headers.get('Content-Disposition') || '';
+  const star = /filename\*=UTF-8''([^;]+)/i.exec(cd);
+  const plain = /filename="?([^";]+)"?/i.exec(cd);
+  if (star) filename = decodeURIComponent(star[1]);
+  else if (plain) filename = plain[1];
+  const blob = await res.blob();
+  return { blob, filename };
+}
