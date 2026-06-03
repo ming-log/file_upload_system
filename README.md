@@ -8,34 +8,14 @@
 
 ---
 
-## 🔑 演示账号
-
-后端启动时会**自动写入一套演示数据**（幂等），可直接登录体验。
-
-| 角色 | 账号 | 密码 | 说明 |
-| --- | --- | --- | --- |
-| 管理员 admin | `admin` | `admin123` | 启动时自动创建 |
-| 教师 teacher | `teacher001` | `teacher123` | 张伟，已绑定一个班级与两门课程 |
-| 学生 student | `2022001` / `2022002` / `2022003` | `minglog666` | 用**学号**登录 |
-
-> 设置环境变量 `SEED_DISABLE=1` 可关闭自动播种。`admin123` 等仅供本地开发，生产环境请通过环境变量注入强密码。
-
-### 典型上手流程
-
-1. 用 `admin` / `admin123` 登录 → 管理员视图，可**创建/编辑/删除教师账号**（密码留空默认 `minglog666`）。
-2. 用 `teacher001` / `teacher123` 登录 → **创建班级** → **创建课程**（关联班级）→ **创建作业**（关联课程，设置允许文件类型、最大大小、截止时间）→ 在班级内**创建/导入学生**。
-3. 用学生学号 + `minglog666` 登录 → **提交作业文件**（支持多文件 + 备注）。
-
----
-
 ## 📁 项目结构
 
 ```
 file_upload_system/
 ├── backend/                  # FastAPI 后端（全量 CRUD REST API）
 │   ├── app/
-│   │   ├── main.py           # 应用工厂 + CORS + 启动播种
-│   │   ├── seed.py           # 演示数据播种（幂等）
+│   │   ├── main.py           # 应用工厂 + CORS
+│   │   ├── create_admin.py   # 创建初始管理员的 CLI（幂等）
 │   │   ├── models.py         # ORM 模型（角色小写，多文件提交）
 │   │   ├── repository.py     # 全量 CRUD 仓储 + 级联删除
 │   │   ├── core/             # validators(纯函数) / errors
@@ -79,6 +59,15 @@ python -m uvicorn app.main:app --reload --port 8000
 - API 服务：http://localhost:8000
 - 交互式文档（Swagger）：http://localhost:8000/docs
 
+> 首次部署需创建一个初始管理员账号（系统不再自动播种任何账号）：
+>
+> ```bash
+> # 交互式输入密码（推荐）
+> python -m app.create_admin --account admin --email admin@example.com
+> ```
+>
+> 该命令幂等；登录后即可在管理端创建教师、班级、课程与学生。
+
 ### 2. 启动前端
 
 ```bash
@@ -104,7 +93,6 @@ pnpm dev
 | `STORAGE_DIR` | `./uploaded_files` | 本地存储目录 |
 | `CORS_ORIGINS` | 本地 5173/3000 | 允许的前端来源（逗号分隔） |
 | `AUTH_SECRET_KEY` | 开发占位值 | JWT 签名密钥（生产必改） |
-| `SEED_DISABLE` | 未设置 | 设为 `1` 关闭启动播种 |
 | `MINIO_*` / `SMTP_*` | 见 `backend/README.md` | 仅在切换 MinIO / 真实邮件时需要 |
 
 ### 前端

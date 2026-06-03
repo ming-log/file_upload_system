@@ -71,6 +71,7 @@ export interface AuthUser {
   account: string;
   name: string;
   email: string;
+  avatar?: string;
   emailVerified?: boolean;
   classId?: string;
   school?: string;
@@ -83,7 +84,8 @@ export type Page =
   | 'class-detail'
   | 'courses'
   | 'assignments'
-  | 'my-assignments';
+  | 'my-assignments'
+  | 'profile';
 
 export const FILE_TYPE_OPTIONS = [
   { label: 'PDF', value: '.pdf' },

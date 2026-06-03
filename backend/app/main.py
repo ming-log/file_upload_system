@@ -1,12 +1,10 @@
 """FastAPI 应用骨架。
 
-提供应用工厂、健康检查端点、CORS 中间件、业务路由接入，以及启动时的演示数据播种
-（开发/本地联调用，使空库也能直接登录）。
+提供应用工厂、健康检查端点、CORS 中间件、业务路由接入。
 """
 
 from __future__ import annotations
 
-import logging
 import os
 
 from fastapi import FastAPI
@@ -18,11 +16,7 @@ from app.config import load_app_env
 # 尽早加载 .env（在导入依赖/路由前），确保存储、邮件等读取到正确配置。
 load_app_env()
 
-from app.api.deps import _session_factory
 from app.api.routes import ALL_ROUTERS
-from app.seed import seed_initial_data
-
-logger = logging.getLogger(__name__)
 
 API_TITLE = "作业文件上传系统 API"
 API_DESCRIPTION = "前后端分离的作业文件上传系统后端服务（FastAPI）。"
@@ -55,18 +49,6 @@ def create_app() -> FastAPI:
 
     for router in ALL_ROUTERS:
         app.include_router(router)
-
-    @app.on_event("startup")
-    def _seed_on_startup() -> None:
-        if os.getenv("SEED_DISABLE", "").strip().lower() in {"1", "true", "yes"}:
-            return
-        session = _session_factory()
-        try:
-            seed_initial_data(session)
-        except Exception:  # 播种失败不应阻断应用启动
-            logger.warning("初始数据播种失败（应用仍正常启动）", exc_info=True)
-        finally:
-            session.close()
 
     return app
 

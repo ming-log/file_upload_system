@@ -251,6 +251,9 @@ class EmailService:
     ) -> None:
         # 注入点：未显式提供时回退到基于 aiosmtplib 的默认发送实现。
         self._sender: SendFn = sender if sender is not None else self._smtp_send
+        # 标记是否使用默认 SMTP 发送实现（注意：bound method 每次访问都是新对象，
+        # 不能用 `is self._smtp_send` 判断，故用显式布尔标记）。
+        self._uses_default_sender: bool = sender is None
         self._sleep: Callable[[float], Awaitable[None]] = (
             sleep if sleep is not None else asyncio.sleep
         )
@@ -386,7 +389,7 @@ class EmailService:
 
     async def _sender_with_subject(self, recipient: str, body: str, subject: str) -> None:
         """按主题发送：默认走 :meth:`_smtp_send`；若注入了自定义 sender 则回退调用之。"""
-        if self._sender is self._smtp_send:
+        if self._uses_default_sender:
             await self._smtp_send(recipient, body, subject)
         else:
             # 注入的测试 sender 签名为 (recipient, body)。

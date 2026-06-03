@@ -20,6 +20,7 @@ from app.api.routes.assignments import router as assignments_router
 from app.api.routes.auth import router as auth_router
 from app.api.routes.classes import router as classes_router
 from app.api.routes.courses import router as courses_router
+from app.api.routes.me import router as me_router
 from app.api.routes.submissions import router as submissions_router
 from app.api.routes.users import router as users_router
 
@@ -28,6 +29,7 @@ __all__ = ["ALL_ROUTERS"]
 #: 应用工厂据此顺序接入全部业务路由。
 ALL_ROUTERS: list[APIRouter] = [
     auth_router,
+    me_router,
     users_router,
     classes_router,
     courses_router,

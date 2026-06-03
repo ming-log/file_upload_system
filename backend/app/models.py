@@ -52,6 +52,8 @@ class User(Base):
     name: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     email: Mapped[Optional[str]] = mapped_column(String(254), nullable=True)
     password: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    # avatar：用户头像（base64 data URL），可选。
+    avatar: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     # email_verified：学生是否已完成邮箱验证（首次登录强制验证并改密）。
     email_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=now_cn_naive)

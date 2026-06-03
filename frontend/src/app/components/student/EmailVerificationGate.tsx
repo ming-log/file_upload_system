@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { MailCheck, AlertCircle, Lock, ShieldCheck, LogOut, Send } from 'lucide-react';
+import { MailCheck, AlertCircle, ShieldCheck, LogOut, Send } from 'lucide-react';
 import { useApp } from '../../context';
 import { authApi, ApiError } from '../../api';
+import { PasswordInput } from '../ui/PasswordInput';
 
-// 学生首次登录后的强制邮箱验证 + 改密界面。
+// 学生与教师首次登录后的强制邮箱验证 + 改密界面（管理员豁免）。
 // 流程：发送验证码到邮箱 -> 输入验证码 + 新密码 -> 校验通过后进入应用。
 export function EmailVerificationGate() {
   const { currentUser, onEmailVerified, logout } = useApp();
@@ -63,6 +64,7 @@ export function EmailVerificationGate() {
   };
 
   const inputClass = 'w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900';
+  const pwInputClass = 'w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
@@ -108,17 +110,11 @@ export function EmailVerificationGate() {
             {/* 新密码 */}
             <div>
               <label className="block text-sm text-gray-700 mb-1.5">新密码</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="至少 6 位" className={inputClass} />
-              </div>
+              <PasswordInput value={newPassword} onChange={setNewPassword} placeholder="至少 6 位" className={pwInputClass} />
             </div>
             <div>
               <label className="block text-sm text-gray-700 mb-1.5">确认新密码</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="再次输入新密码" className={inputClass} />
-              </div>
+              <PasswordInput value={confirmPassword} onChange={setConfirmPassword} placeholder="再次输入新密码" className={pwInputClass} />
             </div>
 
             {info && (

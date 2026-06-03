@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ChevronLeft, Plus, Trash2, Edit2, Upload, Users, X, AlertCircle, Check, UserPlus } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useApp } from '../../context';
+import { PasswordInput } from '../ui/PasswordInput';
 import type { Student } from '../../types';
 
 interface FormData { studentId: string; name: string; email: string; password: string; }
@@ -199,13 +200,22 @@ export function ClassDetailPage() {
               ].map(f => (
                 <div key={f.key}>
                   <label className="block text-sm text-gray-700 mb-1">{f.label}{f.required ? ' *' : ''}</label>
-                  <input
-                    type="text"
-                    value={(form as any)[f.key]}
-                    onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))}
-                    placeholder={f.placeholder}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                  {f.key === 'password' ? (
+                    <PasswordInput
+                      value={(form as any)[f.key]}
+                      onChange={v => setForm(prev => ({ ...prev, [f.key]: v }))}
+                      placeholder={f.placeholder}
+                      withIcon={false}
+                    />
+                  ) : (
+                    <input
+                      type="text"
+                      value={(form as any)[f.key]}
+                      onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))}
+                      placeholder={f.placeholder}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  )}
                 </div>
               ))}
               <p className="text-xs text-gray-400">密码为空时默认使用 minglog666</p>

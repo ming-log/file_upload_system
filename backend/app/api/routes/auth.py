@@ -101,6 +101,7 @@ def _auth_user(repo: Repository, user_id: str) -> Optional[dict[str, Any]]:
         "account": user.account,
         "name": user.name or "",
         "email": user.email or "",
+        "avatar": user.avatar or "",
         "emailVerified": bool(user.email_verified),
     }
     if user.role == "student":

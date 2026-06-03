@@ -139,31 +139,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (currentUser) await loadAll(currentUser);
   }, [currentUser, loadAll]);
 
+  const finishLogin = useCallback(async (res: { access_token: string; user: AuthUser }) => {
+    setToken(res.access_token);
+    setCurrentUser(res.user);
+    // 学生/教师未完成邮箱验证时，停留在验证页由前端引导，暂不加载数据（管理员豁免）。
+    if ((res.user.role === 'student' || res.user.role === 'teacher') && res.user.emailVerified === false) {
+      return;
+    }
+    setCurrentPage(initialPageFor(res.user));
+    await loadAll(res.user);
+  }, [loadAll]);
+
   const login = useCallback(async (account: string, password: string, captchaId?: string, captcha?: string): Promise<boolean> => {
     try {
       const res = await authApi.loginTeacher(account, password);
-      setToken(res.access_token);
-      setCurrentUser(res.user);
-      setCurrentPage(initialPageFor(res.user));
-      await loadAll(res.user);
+      await finishLogin(res);
       return true;
     } catch (e) {
       if (e instanceof ApiError) throw e;
       console.error(e);
       throw new ApiError(0, '网络错误，请稍后重试');
     }
-  }, [loadAll]);
-
-  const finishLogin = useCallback(async (res: { access_token: string; user: AuthUser }) => {
-    setToken(res.access_token);
-    setCurrentUser(res.user);
-    // 学生未完成邮箱验证时，停留在登录页由前端引导验证流程，暂不加载数据。
-    if (res.user.role === 'student' && res.user.emailVerified === false) {
-      return;
-    }
-    setCurrentPage(initialPageFor(res.user));
-    await loadAll(res.user);
-  }, [loadAll]);
+  }, [finishLogin]);
 
   const loginStudent = useCallback(async (school: string, studentId: string, password: string, captchaId?: string, captcha?: string): Promise<boolean> => {
     try {

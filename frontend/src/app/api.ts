@@ -4,7 +4,7 @@
 // 会话令牌（JWT）保存在 localStorage，请求时自动附加到 Authorization 头。
 
 import type {
-  AuthUser, User, Class, Student, Course, Assignment, Submission,
+  AuthUser, User, Class, Student, Course, Assignment, Submission, Role,
 } from './types';
 
 const TOKEN_KEY = 'auth_token';
@@ -97,6 +97,26 @@ export const authApi = {
   sendEmailCode: () => api.post<{ status: string; email: string }>('/auth/email/send-code'),
   verifyEmail: (code: string, newPassword: string) =>
     api.post<{ status: string; user: AuthUser }>('/auth/email/verify', { code, newPassword }),
+};
+
+export interface MeProfile {
+  id: string;
+  role: Role;
+  account: string;
+  name: string;
+  email: string;
+  avatar: string;
+  emailVerified: boolean;
+  studentId?: string;
+  classId?: string;
+  school?: string;
+  className?: string;
+}
+
+export const meApi = {
+  get: () => api.get<MeProfile>('/me'),
+  update: (data: { name?: string; email?: string; avatar?: string }) =>
+    api.put<MeProfile>('/me', data),
 };
 
 export const usersApi = {
