@@ -16,8 +16,7 @@
 ```
 backend/
 ├── app/
-│   ├── main.py            # FastAPI 应用工厂（CORS、路由接入、启动播种）
-│   ├── seed.py            # 启动时写入演示数据（管理员/教师/学生/班级/课程/作业）
+│   ├── main.py            # FastAPI 应用工厂（CORS、路由接入）
 │   ├── models.py          # ORM 模型（角色小写，多文件提交）
 │   ├── repository.py      # 全量 CRUD 仓储
 │   ├── core/              # 校验纯函数、错误模型
@@ -45,16 +44,6 @@ uvicorn app.main:app --reload --port 8000
 * 健康检查：`GET /health`
 * 接口文档：`http://localhost:8000/docs`
 
-启动时自动写入演示数据（幂等）。演示账号：
-
-| 角色   | 账号        | 密码        |
-| ------ | ----------- | ----------- |
-| 管理员 | `admin`      | `admin123`    |
-| 教师   | `teacher001` | `teacher123`  |
-| 学生   | `2022001`    | `minglog666`  |
-
-可用环境变量 `SEED_DISABLE=1` 关闭播种。
-
 ## 主要 API
 
 | 方法 & 路径                                    | 说明                       | 角色            |
@@ -63,8 +52,9 @@ uvicorn app.main:app --reload --port 8000
 | `GET /auth/captcha`                            | 获取登录验证码             | 公共            |
 | `POST /auth/login/student`                     | 学生登录（校+学号+码）     | 公共            |
 | `POST /auth/login/teacher`                     | 教师/管理员登录            | 公共            |
-| `POST /auth/email/send-code`                   | 发送邮箱验证码             | 学生            |
-| `POST /auth/email/verify`                      | 验证邮箱并改密             | 学生            |
+| `POST /auth/email/send-code`                   | 发送邮箱验证码             | 已登录          |
+| `POST /auth/email/verify`                      | 验证邮箱并改密             | 已登录          |
+| `GET /me`，`PUT /me`                            | 查看/更新个人基本信息      | 全部（本人）    |
 | `GET/POST /users`，`PUT/DELETE /users/{id}`    | 用户增删改查               | admin           |
 | `POST /users/batch`                            | 批量创建用户               | admin           |
 | `GET/POST /classes`，`PUT/DELETE /classes/{id}`| 班级增删改查               | teacher/admin   |
@@ -119,14 +109,25 @@ uvicorn app.main:app --reload --port 8000
 `GET /auth/captcha` 返回 `{ captchaId, image }`（SVG data URL）。验证码一次性、
 5 分钟过期、不区分大小写。
 
-**学生首次登录强制邮箱验证 + 改密**：登录返回的用户信息含 `emailVerified`。为
-`false` 时前端引导其完成：
+**学生与教师首次登录强制邮箱验证 + 改密**（管理员豁免）：登录返回的用户信息含
+`emailVerified`。为 `false` 时前端引导其完成：
 
 * `POST /auth/email/send-code`（需令牌）：向学生邮箱发送 6 位验证码（10 分钟有效）。
 * `POST /auth/email/verify`（需令牌）：提交 `code` + `newPassword`，校验通过后标记
   邮箱已验证并修改密码，方可进入系统。
 
 > JWT 主体（`sub`）使用全局唯一的 `user.id`（学生账号即学号已不再全局唯一）。
+
+## 个人中心
+
+* `GET /me` / `PUT /me`：当前登录用户查看与更新自己的基本信息。
+  * **可改**：头像 `avatar`（base64 data URL）、电子邮箱 `email`；姓名 `name` 仅
+    教师/管理员可改。
+  * **不可改**：学号、姓名（学生）、学校、班级——由学校统一维护，仅展示。
+  * 修改邮箱会重置 `emailVerified`（需重新验证）。
+* 修改密码：任意用户均可通过「邮箱验证码 + 新密码」修改，复用
+  `POST /auth/email/send-code` 与 `POST /auth/email/verify`。
+  前端入口在侧边栏底部「个人中心」。
 
 ## 邮件通知
 

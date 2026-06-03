@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { BookOpen, Lock, User, AlertCircle, ShieldCheck, RefreshCw, GraduationCap, School } from 'lucide-react';
+import { User, AlertCircle, ShieldCheck, RefreshCw, GraduationCap, School } from 'lucide-react';
 import { useApp } from '../context';
 import { authApi, ApiError } from '../api';
+import { PasswordInput } from './ui/PasswordInput';
 
 type LoginMode = 'student' | 'teacher';
 
@@ -131,6 +132,7 @@ export function LoginPage() {
   };
 
   const inputClass = 'w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900';
+  const pwInputClass = 'w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
@@ -179,8 +181,8 @@ export function LoginPage() {
         <div className="w-full max-w-md">
           {/* Logo */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl shadow-lg mb-4">
-              <BookOpen className="w-8 h-8 text-white" />
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-2xl shadow-lg mb-4 overflow-hidden">
+              <img src="/logo.png" alt="LOGO" className="w-full h-full object-contain" />
             </div>
             <h1 className="text-3xl text-gray-900 mb-1">作业提交系统</h1>
             <p className="text-gray-500 text-sm">Assignment Upload & Management System</p>
@@ -209,7 +211,7 @@ export function LoginPage() {
             </div>
 
             {mode === 'student' ? (
-              <form onSubmit={handleStudentSubmit} className="space-y-4">
+              <form onSubmit={handleStudentSubmit} className="space-y-4 min-h-[372px]">
                 <div>
                   <label className="block text-sm text-gray-700 mb-1.5">学校</label>
                   <div className="relative">
@@ -236,10 +238,7 @@ export function LoginPage() {
                 </div>
                 <div>
                   <label className="block text-sm text-gray-700 mb-1.5">密码</label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="请输入密码" className={inputClass} />
-                  </div>
+                  <PasswordInput value={password} onChange={setPassword} placeholder="请输入密码" className={pwInputClass} />
                 </div>
                 {/* 验证码 */}
                 <div>
@@ -271,7 +270,7 @@ export function LoginPage() {
                 </button>
               </form>
             ) : (
-              <form onSubmit={handleTeacherSubmit} className="space-y-4">
+              <form onSubmit={handleTeacherSubmit} className="space-y-4 min-h-[372px]">
                 <div>
                   <label className="block text-sm text-gray-700 mb-1.5">账号</label>
                   <div className="relative">
@@ -281,10 +280,7 @@ export function LoginPage() {
                 </div>
                 <div>
                   <label className="block text-sm text-gray-700 mb-1.5">密码</label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="请输入密码" className={inputClass} />
-                  </div>
+                  <PasswordInput value={password} onChange={setPassword} placeholder="请输入密码" className={pwInputClass} />
                 </div>
                 {error && (
                   <div className="flex items-center gap-2 text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2 text-sm">
@@ -301,6 +297,9 @@ export function LoginPage() {
 
           <p className="text-center text-xs text-gray-400 mt-6">
             {mode === 'student' ? '学生使用「学校 + 学号 + 密码」登录，首次登录需完成邮箱验证' : '教师与管理员使用账号密码登录'}
+          </p>
+          <p className="text-center text-xs text-gray-400 mt-2">
+            © {new Date().getFullYear()} 作业提交系统 · Designed &amp; Developed by minglog
           </p>
         </div>
       </div>

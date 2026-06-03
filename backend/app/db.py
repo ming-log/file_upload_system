@@ -113,6 +113,9 @@ def _run_lightweight_migrations(engine: Engine) -> None:
             conn.execute(
                 text("ALTER TABLE users ADD COLUMN email_verified BOOLEAN NOT NULL DEFAULT 0")
             )
+    if "avatar" not in columns:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE users ADD COLUMN avatar TEXT"))
 
     # 检测过时唯一约束，若存在则重建 users 表（仅 SQLite 需要此处理）。
     if engine.dialect.name == "sqlite":

@@ -8,14 +8,15 @@ import { CoursesPage } from './components/teacher/CoursesPage';
 import { AssignmentsPage } from './components/teacher/AssignmentsPage';
 import { MyAssignmentsPage } from './components/student/MyAssignmentsPage';
 import { EmailVerificationGate } from './components/student/EmailVerificationGate';
+import { ProfilePage } from './components/ProfilePage';
 
 function AppContent() {
   const { currentUser, currentPage } = useApp();
 
   if (!currentUser) return <LoginPage />;
 
-  // 学生首次登录未完成邮箱验证：强制进入验证 + 改密流程。
-  if (currentUser.role === 'student' && currentUser.emailVerified === false) {
+  // 学生与教师首次登录未完成邮箱验证：强制进入验证 + 改密流程（管理员豁免）。
+  if ((currentUser.role === 'student' || currentUser.role === 'teacher') && currentUser.emailVerified === false) {
     return <EmailVerificationGate />;
   }
 
@@ -27,6 +28,7 @@ function AppContent() {
       case 'courses': return <CoursesPage />;
       case 'assignments': return <AssignmentsPage />;
       case 'my-assignments': return <MyAssignmentsPage />;
+      case 'profile': return <ProfilePage />;
       default:
         if (currentUser.role === 'admin') return <UsersPage />;
         if (currentUser.role === 'teacher') return <ClassesPage />;

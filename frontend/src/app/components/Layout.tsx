@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import {
-  BookOpen, Users, LayoutDashboard, GraduationCap, BookCopy,
+  Users, LayoutDashboard, GraduationCap, BookCopy,
   FileText, ClipboardList, LogOut, ChevronRight, Menu, X
 } from 'lucide-react';
 import { useState } from 'react';
@@ -55,8 +55,8 @@ export function Layout({ children }: { children: ReactNode }) {
       {/* Logo */}
       <div className="px-6 py-5 border-b border-gray-100">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-            <BookOpen className="w-4 h-4 text-white" />
+          <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden border border-gray-100">
+            <img src="/logo.png" alt="LOGO" className="w-full h-full object-contain" />
           </div>
           <div>
             <p className="text-sm text-gray-900 leading-tight">作业提交系统</p>
@@ -90,15 +90,25 @@ export function Layout({ children }: { children: ReactNode }) {
 
       {/* User */}
       <div className="px-3 py-4 border-t border-gray-100">
-        <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-gray-50 mb-2">
-          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0">
-            {currentUser.name.charAt(0)}
+        <button
+          onClick={() => { navigate('profile'); setSidebarOpen(false); }}
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg mb-2 transition-colors text-left ${
+            currentPage === 'profile' ? 'bg-blue-50' : 'bg-gray-50 hover:bg-gray-100'
+          }`}
+          title="个人中心"
+        >
+          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0 overflow-hidden">
+            {currentUser.avatar ? (
+              <img src={currentUser.avatar} alt="头像" className="w-full h-full object-cover" />
+            ) : (
+              currentUser.name.charAt(0)
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm text-gray-900 truncate">{currentUser.name}</p>
             <span className={`text-xs px-1.5 py-0.5 rounded ${roleColor}`}>{roleLabel}</span>
           </div>
-        </div>
+        </button>
         <button
           onClick={logout}
           className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors"
@@ -141,13 +151,16 @@ export function Layout({ children }: { children: ReactNode }) {
             <Menu className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-blue-600" />
+            <img src="/logo.png" alt="LOGO" className="w-6 h-6 object-contain" />
             <span className="text-gray-900 text-sm">作业提交系统</span>
           </div>
         </header>
 
         <main className="flex-1 overflow-y-auto">
           {children}
+          <footer className="py-4 text-center text-xs text-gray-400 border-t border-gray-100 mt-2">
+            © {new Date().getFullYear()} 作业提交系统 · Designed &amp; Developed by minglog
+          </footer>
         </main>
       </div>
     </div>

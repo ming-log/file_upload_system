@@ -3,6 +3,7 @@ import { Plus, Trash2, Edit2, Users, Upload, X, Check, AlertCircle, UserPlus } f
 import * as Dialog from '@radix-ui/react-dialog';
 import { useApp } from '../../context';
 import { formatDate } from '../../datetime';
+import { PasswordInput } from '../ui/PasswordInput';
 import type { User } from '../../types';
 
 const ROLES = [
@@ -239,13 +240,22 @@ export function UsersPage() {
               ].map(f => (
                 <div key={f.key}>
                   <label className="block text-sm text-gray-700 mb-1">{f.label} {f.required && '*'}</label>
-                  <input
-                    type={f.key === 'password' ? 'password' : 'text'}
-                    value={(form as any)[f.key]}
-                    onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))}
-                    placeholder={f.placeholder}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                  {f.key === 'password' ? (
+                    <PasswordInput
+                      value={(form as any)[f.key]}
+                      onChange={v => setForm(prev => ({ ...prev, [f.key]: v }))}
+                      placeholder={f.placeholder}
+                      withIcon={false}
+                    />
+                  ) : (
+                    <input
+                      type="text"
+                      value={(form as any)[f.key]}
+                      onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))}
+                      placeholder={f.placeholder}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  )}
                 </div>
               ))}
               {formError && (
