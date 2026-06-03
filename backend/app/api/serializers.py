@@ -13,7 +13,7 @@ from typing import Any, Optional
 from app.models import Assignment, Class, Course, Submission, User
 
 __all__ = [
-    "iso",
+    "fmt_dt",
     "serialize_user",
     "serialize_student",
     "serialize_class",
@@ -22,12 +22,19 @@ __all__ = [
     "serialize_submission",
 ]
 
+#: 统一的时间显示格式：``YYYY-MM-DD HH:MM:SS``（北京时间，见 app.core.clock）。
+DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 
-def iso(value: Optional[datetime]) -> Optional[str]:
-    """将 datetime 序列化为 ISO-8601 字符串；``None`` 原样返回。"""
+
+def fmt_dt(value: Optional[datetime]) -> Optional[str]:
+    """将 datetime 序列化为 ``YYYY-MM-DD HH:MM:SS`` 字符串；``None`` 原样返回。
+
+    项目所有时间均为北京时间（见 :mod:`app.core.clock`），此处统一格式化为不含
+    时区后缀、精确到秒的字符串（例如 ``2026-06-03 11:24:25``）。
+    """
     if value is None:
         return None
-    return value.isoformat()
+    return value.strftime(DATETIME_FORMAT)
 
 
 def serialize_user(user: User) -> dict[str, Any]:
@@ -39,7 +46,8 @@ def serialize_user(user: User) -> dict[str, Any]:
         "name": user.name or "",
         "email": user.email or "",
         "password": user.password or "",
-        "createdAt": iso(user.created_at),
+        "emailVerified": bool(user.email_verified),
+        "createdAt": fmt_dt(user.created_at),
     }
 
 
@@ -51,6 +59,7 @@ def serialize_student(user: User) -> dict[str, Any]:
         "name": user.name or "",
         "email": user.email or "",
         "password": user.password or "",
+        "emailVerified": bool(user.email_verified),
         "classId": user.class_id or "",
     }
 
@@ -63,7 +72,7 @@ def serialize_class(clazz: Class) -> dict[str, Any]:
         "major": clazz.major,
         "logo": clazz.logo,
         "teacherId": clazz.teacher_id,
-        "createdAt": iso(clazz.created_at),
+        "createdAt": fmt_dt(clazz.created_at),
     }
 
 
@@ -74,7 +83,7 @@ def serialize_course(course: Course) -> dict[str, Any]:
         "name": course.name,
         "classId": course.class_id,
         "teacherId": course.teacher_id,
-        "createdAt": iso(course.created_at),
+        "createdAt": fmt_dt(course.created_at),
     }
 
 
@@ -86,8 +95,8 @@ def serialize_assignment(assignment: Assignment) -> dict[str, Any]:
         "courseId": assignment.course_id,
         "allowedFileTypes": list(assignment.allowed_extensions),
         "maxFileSizeMB": assignment.max_file_size_mb,
-        "deadline": iso(assignment.deadline),
-        "createdAt": iso(assignment.created_at),
+        "deadline": fmt_dt(assignment.deadline),
+        "createdAt": fmt_dt(assignment.created_at),
     }
 
 
@@ -97,6 +106,6 @@ def serialize_submission(submission: Submission) -> dict[str, Any]:
         "assignmentId": submission.assignment_id,
         "studentId": submission.student_id,
         "files": list(submission.files or []),
-        "submittedAt": iso(submission.submitted_at),
+        "submittedAt": fmt_dt(submission.submitted_at),
         "comment": submission.comment or "",
     }

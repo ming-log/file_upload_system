@@ -89,8 +89,14 @@ export interface BatchResult {
 
 export const authApi = {
   captcha: () => api.get<CaptchaResponse>('/auth/captcha'),
-  login: (account: string, password: string, captchaId?: string, captcha?: string) =>
-    api.post<LoginResponse>('/auth/login', { account, password, captchaId, captcha }),
+  schools: () => api.get<string[]>('/auth/schools'),
+  loginStudent: (school: string, studentId: string, password: string, captchaId?: string, captcha?: string) =>
+    api.post<LoginResponse>('/auth/login/student', { school, studentId, password, captchaId, captcha }),
+  loginTeacher: (account: string, password: string) =>
+    api.post<LoginResponse>('/auth/login/teacher', { account, password }),
+  sendEmailCode: () => api.post<{ status: string; email: string }>('/auth/email/send-code'),
+  verifyEmail: (code: string, newPassword: string) =>
+    api.post<{ status: string; user: AuthUser }>('/auth/email/verify', { code, newPassword }),
 };
 
 export const usersApi = {

@@ -3,12 +3,14 @@ import { FileText, Upload, CheckCircle2, Clock, XCircle, X, AlertCircle, Papercl
 import * as Dialog from '@radix-ui/react-dialog';
 import { useApp } from '../../context';
 import { submissionsApi, ApiError } from '../../api';
+import { parseDateTime, formatDateTime } from '../../datetime';
 import type { Assignment } from '../../types';
 
 function getStatus(deadline: string, submitted: boolean) {
   const now = new Date();
-  const dl = new Date(deadline);
+  const dl = parseDateTime(deadline);
   if (submitted) return 'submitted';
+  if (!dl) return 'open';
   if (dl < now) return 'overdue';
   const diff = dl.getTime() - now.getTime();
   if (diff < 3 * 24 * 60 * 60 * 1000) return 'soon';
@@ -22,10 +24,7 @@ function formatFileSize(bytes: number) {
 }
 
 function formatDeadline(deadline: string) {
-  return new Date(deadline).toLocaleString('zh-CN', {
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit',
-  });
+  return formatDateTime(deadline);
 }
 
 export function MyAssignmentsPage() {
@@ -147,8 +146,8 @@ export function MyAssignmentsPage() {
   const stats = {
     total: myAssignments.length,
     submitted: myAssignments.filter(a => !!getMySubmission(a.id)).length,
-    pending: myAssignments.filter(a => !getMySubmission(a.id) && new Date(a.deadline) > new Date()).length,
-    overdue: myAssignments.filter(a => !getMySubmission(a.id) && new Date(a.deadline) <= new Date()).length,
+    pending: myAssignments.filter(a => !getMySubmission(a.id) && getStatus(a.deadline, false) !== 'overdue').length,
+    overdue: myAssignments.filter(a => !getMySubmission(a.id) && getStatus(a.deadline, false) === 'overdue').length,
   };
 
   return (
@@ -219,7 +218,7 @@ export function MyAssignmentsPage() {
                           {mySub && (
                             <div className="mt-3 p-2.5 bg-green-50 rounded-lg border border-green-100">
                               <p className="text-xs text-green-700 mb-1">
-                                已提交于 {new Date(mySub.submittedAt).toLocaleString('zh-CN')}
+                                已提交于 {formatDateTime(mySub.submittedAt)}
                               </p>
                               <div className="flex flex-wrap gap-2">
                                 {mySub.files.map((f, i) => (

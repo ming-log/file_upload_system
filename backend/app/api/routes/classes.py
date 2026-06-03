@@ -70,14 +70,18 @@ class BatchResultResponse(BaseModel):
 
 
 def _resolve_teacher_id(repo: Repository, current: CurrentUser) -> str:
-    teacher = repo.get_user_by_account(current.account)
+    teacher = repo.get_user(current.user_id)
     if teacher is None:
         raise http_exception_for(ErrorCode.FORBIDDEN)
     return teacher.id
 
 
 def _validate_student(
-    repo: Repository, body: StudentPayload, *, exclude_id: Optional[str] = None
+    repo: Repository,
+    body: StudentPayload,
+    school: str,
+    *,
+    exclude_id: Optional[str] = None,
 ) -> Optional[ErrorCode]:
     if not validate_required(body.studentId) or not validate_required(body.name):
         return ErrorCode.MISSING_REQUIRED_FIELD
@@ -86,10 +90,9 @@ def _validate_student(
         return ErrorCode.MISSING_REQUIRED_FIELD
     if not validate_email(body.email).ok:
         return ErrorCode.INVALID_EMAIL_FORMAT
-    if repo.student_id_exists(body.studentId, exclude_id=exclude_id):
+    # 学号仅在同一学校内唯一（不同学校可重复）。
+    if repo.student_id_exists_in_school(body.studentId, school, exclude_id=exclude_id):
         return ErrorCode.DUPLICATE_STUDENT_ID
-    if repo.account_exists(body.studentId, exclude_id=exclude_id):
-        return ErrorCode.DUPLICATE_ACCOUNT
     return None
 
 
@@ -109,7 +112,7 @@ def list_classes(
 @router.post("/classes", summary="创建班级")
 def create_class(
     body: ClassPayload,
-    current: CurrentUser = Depends(require_roles("teacher")),
+    current: CurrentUser = Depends(require_roles("admin", "teacher")),
     repository: Repository = Depends(get_repository),
 ) -> dict[str, Any]:
     if not (validate_required(body.school) and validate_required(body.grade) and validate_required(body.major)):
@@ -130,7 +133,7 @@ def create_class(
 def update_class(
     class_id: str,
     body: ClassPayload,
-    _user=Depends(require_roles("teacher")),
+    _user=Depends(require_roles("admin", "teacher")),
     repository: Repository = Depends(get_repository),
 ) -> dict[str, Any]:
     clazz = repository.get_class(class_id)
@@ -149,7 +152,7 @@ def update_class(
 @router.delete("/classes/{class_id}", summary="删除班级")
 def delete_class(
     class_id: str,
-    _user=Depends(require_roles("teacher")),
+    _user=Depends(require_roles("admin", "teacher")),
     repository: Repository = Depends(get_repository),
 ) -> dict[str, str]:
     with repository.transaction():
@@ -183,12 +186,13 @@ def list_all_students(
 def create_student(
     class_id: str,
     body: StudentPayload,
-    _user=Depends(require_roles("teacher")),
+    _user=Depends(require_roles("admin", "teacher")),
     repository: Repository = Depends(get_repository),
 ) -> dict[str, Any]:
-    if repository.get_class(class_id) is None:
+    clazz = repository.get_class(class_id)
+    if clazz is None:
         raise http_exception_for(ErrorCode.CLASS_NOT_FOUND)
-    error = _validate_student(repository, body)
+    error = _validate_student(repository, body, clazz.school)
     if error is not None:
         raise http_exception_for(error)
     with repository.transaction():
@@ -208,13 +212,15 @@ def create_student(
 def update_student(
     student_id: str,
     body: StudentPayload,
-    _user=Depends(require_roles("teacher")),
+    _user=Depends(require_roles("admin", "teacher")),
     repository: Repository = Depends(get_repository),
 ) -> dict[str, Any]:
     student = repository.get_user(student_id)
     if student is None or student.role != "student":
         raise http_exception_for(ErrorCode.MISSING_REQUIRED_FIELD, message="学生不存在")
-    error = _validate_student(repository, body, exclude_id=student_id)
+    clazz = repository.get_class(student.class_id) if student.class_id else None
+    school = clazz.school if clazz is not None else ""
+    error = _validate_student(repository, body, school, exclude_id=student_id)
     if error is not None:
         raise http_exception_for(error)
     with repository.transaction():
@@ -230,7 +236,7 @@ def update_student(
 @router.delete("/students/{student_id}", summary="删除学生")
 def delete_student(
     student_id: str,
-    _user=Depends(require_roles("teacher")),
+    _user=Depends(require_roles("admin", "teacher")),
     repository: Repository = Depends(get_repository),
 ) -> dict[str, str]:
     with repository.transaction():
@@ -246,10 +252,11 @@ def delete_student(
 def batch_import_students(
     class_id: str,
     body: BatchStudentsRequest,
-    _user=Depends(require_roles("teacher")),
+    _user=Depends(require_roles("admin", "teacher")),
     repository: Repository = Depends(get_repository),
 ) -> BatchResultResponse:
-    if repository.get_class(class_id) is None:
+    clazz = repository.get_class(class_id)
+    if clazz is None:
         raise http_exception_for(ErrorCode.CLASS_NOT_FOUND)
     if not body.records:
         raise http_exception_for(ErrorCode.EMPTY_BATCH)
@@ -260,7 +267,7 @@ def batch_import_students(
     with repository.transaction():
         for index, rec in enumerate(body.records):
             row_id: int | str = rec.studentId.strip() if validate_required(rec.studentId) else index
-            error = _validate_student(repository, rec)
+            error = _validate_student(repository, rec, clazz.school)
             if error is None and rec.studentId.strip() in seen:
                 error = ErrorCode.DUPLICATE_STUDENT_ID
             if error is not None:

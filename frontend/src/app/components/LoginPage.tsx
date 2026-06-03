@@ -1,18 +1,30 @@
 import { useState, useEffect, useCallback } from 'react';
-import { BookOpen, Lock, User, AlertCircle, ShieldCheck, RefreshCw } from 'lucide-react';
+import { BookOpen, Lock, User, AlertCircle, ShieldCheck, RefreshCw, GraduationCap, School } from 'lucide-react';
 import { useApp } from '../context';
 import { authApi, ApiError } from '../api';
 
+type LoginMode = 'student' | 'teacher';
+
 export function LoginPage() {
-  const { login } = useApp();
-  const [account, setAccount] = useState('');
+  const { loginStudent, loginTeacher } = useApp();
+  const [mode, setMode] = useState<LoginMode>('student');
+
+  // 共用
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // 学生
+  const [schools, setSchools] = useState<string[]>([]);
+  const [school, setSchool] = useState('');
+  const [studentId, setStudentId] = useState('');
   const [captcha, setCaptcha] = useState('');
   const [captchaId, setCaptchaId] = useState('');
   const [captchaImage, setCaptchaImage] = useState('');
   const [captchaLoading, setCaptchaLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+
+  // 教师
+  const [account, setAccount] = useState('');
 
   const refreshCaptcha = useCallback(async () => {
     setCaptchaLoading(true);
@@ -29,151 +41,267 @@ export function LoginPage() {
   }, []);
 
   useEffect(() => {
+    authApi.schools().then(setSchools).catch(() => setSchools([]));
     refreshCaptcha();
   }, [refreshCaptcha]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // 演示账号（上线后可删除此区块）。点击快速填入对应表单并切换登录方式。
+  const demoStudents = [
+    { school: '清华大学', studentId: '2022001', password: 'minglog666', name: '李明' },
+  ];
+  const demoTeachers = [
+    { role: '管理员', account: 'admin', password: 'admin123', color: 'bg-purple-100 text-purple-700 border-purple-200' },
+    { role: '教师', account: 'teacher001', password: 'teacher123', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+  ];
+
+  const fillStudentDemo = (d: { school: string; studentId: string; password: string }) => {
+    setMode('student');
+    setSchool(d.school);
+    setStudentId(d.studentId);
+    setPassword(d.password);
+    setError('');
+    refreshCaptcha();
+  };
+
+  const fillTeacherDemo = (d: { account: string; password: string }) => {
+    setMode('teacher');
+    setAccount(d.account);
+    setPassword(d.password);
+    setError('');
+  };
+
+  const switchMode = (m: LoginMode) => {
+    setMode(m);
+    setError('');
+    setPassword('');
+    if (m === 'student') refreshCaptcha();
+  };
+
+  const handleStudentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!account.trim()) { setError('请输入账号'); return; }
+    if (!school) { setError('请选择学校'); return; }
+    if (!studentId.trim()) { setError('请输入学号'); return; }
     if (!password.trim()) { setError('请输入密码'); return; }
     if (!captcha.trim()) { setError('请输入验证码'); return; }
     setLoading(true);
     setError('');
     try {
-      await login(account.trim(), password.trim(), captchaId, captcha.trim());
+      await loginStudent(school, studentId.trim(), password.trim(), captchaId, captcha.trim());
     } catch (err) {
-      if (err instanceof ApiError) {
-        if (err.code === 'INVALID_CAPTCHA') {
-          setError('验证码错误或已过期，请重试');
-          refreshCaptcha();
-        } else if (err.code === 'INVALID_CREDENTIALS' || err.status === 401) {
-          setError('账号或密码错误，请重试');
-          refreshCaptcha();
-        } else {
-          setError(err.message || '登录失败，请重试');
-          refreshCaptcha();
-        }
-      } else {
-        setError('登录失败，请重试');
-        refreshCaptcha();
-      }
+      handleLoginError(err);
     } finally {
       setLoading(false);
     }
   };
 
-  const demoAccounts = [
-    { role: '管理员', account: 'admin', password: 'admin123', color: 'bg-purple-100 text-purple-700 border-purple-200' },
-    { role: '教师', account: 'teacher001', password: 'teacher123', color: 'bg-blue-100 text-blue-700 border-blue-200' },
-    { role: '学生', account: '2022001', password: 'minglog666', color: 'bg-green-100 text-green-700 border-green-200' },
-  ];
+  const handleTeacherSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!account.trim()) { setError('请输入账号'); return; }
+    if (!password.trim()) { setError('请输入密码'); return; }
+    setLoading(true);
+    setError('');
+    try {
+      await loginTeacher(account.trim(), password.trim());
+    } catch (err) {
+      handleLoginError(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLoginError = (err: unknown) => {
+    if (err instanceof ApiError) {
+      if (err.code === 'INVALID_CAPTCHA') {
+        setError('验证码错误或已过期，请重试');
+        refreshCaptcha();
+      } else if (err.code === 'INVALID_CREDENTIALS' || err.status === 401) {
+        setError(mode === 'student' ? '学校、学号或密码错误，请重试' : '账号或密码错误，请重试');
+        if (mode === 'student') refreshCaptcha();
+      } else if (err.code === 'PASSWORD_RESET_REQUIRED') {
+        setError('该账号需要重置密码，请联系老师');
+        if (mode === 'student') refreshCaptcha();
+      } else {
+        setError(err.message || '登录失败，请重试');
+        if (mode === 'student') refreshCaptcha();
+      }
+    } else {
+      setError('登录失败，请重试');
+      if (mode === 'student') refreshCaptcha();
+    }
+  };
+
+  const inputClass = 'w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl shadow-lg mb-4">
-            <BookOpen className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-3xl text-gray-900 mb-1">作业提交系统</h1>
-          <p className="text-gray-500 text-sm">Assignment Upload & Management System</p>
-        </div>
+      <div className="w-full max-w-4xl flex flex-col lg:flex-row items-center lg:items-stretch gap-6">
+        {/* 左侧：演示账号（上线后删除） */}
+        <div className="w-full max-w-md lg:w-72 lg:flex-shrink-0">
+          <div className="bg-white/70 backdrop-blur rounded-2xl border border-gray-100 shadow-sm p-5 h-full">
+            <p className="text-sm text-gray-700 font-medium mb-1">演示账号</p>
+            <p className="text-xs text-gray-400 mb-4">点击快速填入（验证码仍需手动输入）</p>
 
-        {/* Card */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
-          <h2 className="text-xl text-gray-800 mb-6">登录账号</h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm text-gray-700 mb-1.5">账号</label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  value={account}
-                  onChange={e => setAccount(e.target.value)}
-                  placeholder="请输入账号或学号"
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm text-gray-700 mb-1.5">密码</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder="请输入密码"
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900"
-                />
-              </div>
-            </div>
-            {/* 验证码 */}
-            <div>
-              <label className="block text-sm text-gray-700 mb-1.5">验证码</label>
-              <div className="flex items-center gap-2">
-                <div className="relative flex-1">
-                  <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input
-                    type="text"
-                    value={captcha}
-                    onChange={e => setCaptcha(e.target.value)}
-                    placeholder="请输入图中字符"
-                    autoComplete="off"
-                    maxLength={8}
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900 uppercase tracking-widest"
-                  />
-                </div>
+            <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
+              <GraduationCap className="w-3.5 h-3.5" />学生
+            </p>
+            <div className="space-y-2 mb-4">
+              {demoStudents.map(d => (
                 <button
-                  type="button"
-                  onClick={refreshCaptcha}
-                  title="点击刷新验证码"
-                  className="relative h-[46px] w-[120px] flex-shrink-0 rounded-lg border border-gray-200 bg-gray-50 overflow-hidden flex items-center justify-center hover:border-blue-400 transition-colors"
+                  key={d.studentId}
+                  onClick={() => fillStudentDemo(d)}
+                  className="w-full px-3 py-2 rounded-lg border bg-green-100 text-green-700 border-green-200 hover:opacity-80 transition-opacity text-left"
                 >
-                  {captchaLoading || !captchaImage ? (
-                    <RefreshCw className={`w-5 h-5 text-gray-400 ${captchaLoading ? 'animate-spin' : ''}`} />
-                  ) : (
-                    <img src={captchaImage} alt="验证码" className="h-full w-full object-cover" />
-                  )}
+                  <div className="text-xs font-medium">{d.name}</div>
+                  <div className="text-[11px] font-mono mt-0.5 truncate">{d.school} / {d.studentId} / {d.password}</div>
                 </button>
-              </div>
-              <p className="text-xs text-gray-400 mt-1">看不清？点击图片刷新</p>
+              ))}
             </div>
-            {error && (
-              <div className="flex items-center gap-2 text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2 text-sm">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                {error}
-              </div>
-            )}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white py-2.5 rounded-lg transition-colors mt-2 flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />登录中...</>
-              ) : '登 录'}
-            </button>
-          </form>
+
+            <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
+              <User className="w-3.5 h-3.5" />教师 / 管理员
+            </p>
+            <div className="space-y-2">
+              {demoTeachers.map(d => (
+                <button
+                  key={d.account}
+                  onClick={() => fillTeacherDemo(d)}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border text-xs ${d.color} hover:opacity-80 transition-opacity text-left`}
+                >
+                  <span className="font-medium">{d.role}</span>
+                  <span className="font-mono">{d.account} / {d.password}</span>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
-        {/* Demo accounts */}
-        <div className="mt-6 bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-          <p className="text-xs text-gray-500 mb-3">演示账号（点击快速填入账号密码，验证码仍需手动输入）</p>
-          <div className="space-y-2">
-            {demoAccounts.map(d => (
-              <button
-                key={d.account}
-                onClick={() => { setAccount(d.account); setPassword(d.password); setError(''); }}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border text-xs ${d.color} hover:opacity-80 transition-opacity text-left`}
-              >
-                <span className="font-medium">{d.role}</span>
-                <span className="font-mono">{d.account} / {d.password}</span>
-              </button>
-            ))}
+        {/* 右侧：登录区 */}
+        <div className="w-full max-w-md">
+          {/* Logo */}
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl shadow-lg mb-4">
+              <BookOpen className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-3xl text-gray-900 mb-1">作业提交系统</h1>
+            <p className="text-gray-500 text-sm">Assignment Upload & Management System</p>
           </div>
+
+          {/* Card */}
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
+            {/* Tabs */}
+            <div className="flex gap-1 p-1 bg-gray-100 rounded-lg mb-6">
+              <button
+                onClick={() => switchMode('student')}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-sm transition-all ${
+                  mode === 'student' ? 'bg-white text-blue-700 shadow-sm font-medium' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <GraduationCap className="w-4 h-4" />学生登录
+              </button>
+              <button
+                onClick={() => switchMode('teacher')}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-sm transition-all ${
+                  mode === 'teacher' ? 'bg-white text-blue-700 shadow-sm font-medium' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <User className="w-4 h-4" />教师登录
+              </button>
+            </div>
+
+            {mode === 'student' ? (
+              <form onSubmit={handleStudentSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm text-gray-700 mb-1.5">学校</label>
+                  <div className="relative">
+                    <School className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
+                    <select
+                      value={school}
+                      onChange={e => setSchool(e.target.value)}
+                      className={`${inputClass} appearance-none`}
+                    >
+                      <option value="">请选择学校</option>
+                      {schools.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                  {schools.length === 0 && (
+                    <p className="text-xs text-amber-600 mt-1">暂无可选学校，请联系老师创建班级</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-700 mb-1.5">学号</label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input type="text" value={studentId} onChange={e => setStudentId(e.target.value)} placeholder="请输入学号" className={inputClass} />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-700 mb-1.5">密码</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="请输入密码" className={inputClass} />
+                  </div>
+                </div>
+                {/* 验证码 */}
+                <div>
+                  <label className="block text-sm text-gray-700 mb-1.5">验证码</label>
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input type="text" value={captcha} onChange={e => setCaptcha(e.target.value)} placeholder="请输入图中字符" autoComplete="off" maxLength={8}
+                        className={`${inputClass} uppercase tracking-widest`} />
+                    </div>
+                    <button type="button" onClick={refreshCaptcha} title="点击刷新验证码"
+                      className="relative h-[46px] w-[120px] flex-shrink-0 rounded-lg border border-gray-200 bg-gray-50 overflow-hidden flex items-center justify-center hover:border-blue-400 transition-colors">
+                      {captchaLoading || !captchaImage ? (
+                        <RefreshCw className={`w-5 h-5 text-gray-400 ${captchaLoading ? 'animate-spin' : ''}`} />
+                      ) : (
+                        <img src={captchaImage} alt="验证码" className="h-full w-full object-cover" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+                {error && (
+                  <div className="flex items-center gap-2 text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2 text-sm">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />{error}
+                  </div>
+                )}
+                <button type="submit" disabled={loading}
+                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white py-2.5 rounded-lg transition-colors mt-2 flex items-center justify-center gap-2">
+                  {loading ? (<><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />登录中...</>) : '登 录'}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleTeacherSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm text-gray-700 mb-1.5">账号</label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input type="text" value={account} onChange={e => setAccount(e.target.value)} placeholder="请输入教师/管理员账号" className={inputClass} />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-700 mb-1.5">密码</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="请输入密码" className={inputClass} />
+                  </div>
+                </div>
+                {error && (
+                  <div className="flex items-center gap-2 text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2 text-sm">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />{error}
+                  </div>
+                )}
+                <button type="submit" disabled={loading}
+                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white py-2.5 rounded-lg transition-colors mt-2 flex items-center justify-center gap-2">
+                  {loading ? (<><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />登录中...</>) : '登 录'}
+                </button>
+              </form>
+            )}
+          </div>
+
+          <p className="text-center text-xs text-gray-400 mt-6">
+            {mode === 'student' ? '学生使用「学校 + 学号 + 密码」登录，首次登录需完成邮箱验证' : '教师与管理员使用账号密码登录'}
+          </p>
         </div>
       </div>
     </div>

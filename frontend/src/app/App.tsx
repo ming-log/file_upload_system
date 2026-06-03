@@ -7,11 +7,17 @@ import { ClassDetailPage } from './components/teacher/ClassDetailPage';
 import { CoursesPage } from './components/teacher/CoursesPage';
 import { AssignmentsPage } from './components/teacher/AssignmentsPage';
 import { MyAssignmentsPage } from './components/student/MyAssignmentsPage';
+import { EmailVerificationGate } from './components/student/EmailVerificationGate';
 
 function AppContent() {
   const { currentUser, currentPage } = useApp();
 
   if (!currentUser) return <LoginPage />;
+
+  // 学生首次登录未完成邮箱验证：强制进入验证 + 改密流程。
+  if (currentUser.role === 'student' && currentUser.emailVerified === false) {
+    return <EmailVerificationGate />;
+  }
 
   const renderPage = () => {
     switch (currentPage) {

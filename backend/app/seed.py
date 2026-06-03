@@ -15,10 +15,11 @@ from __future__ import annotations
 
 import logging
 import os
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from sqlalchemy.orm import Session
 
+from app.core.clock import now_cn_naive
 from app.repository import Repository
 
 logger = logging.getLogger(__name__)
@@ -39,7 +40,7 @@ def seed_initial_data(session: Session) -> bool:
         logger.info("初始数据已存在，跳过播种")
         return False
 
-    now = datetime.utcnow()
+    now = now_cn_naive()
     with repo.transaction():
         # 管理员。
         repo.create_user(

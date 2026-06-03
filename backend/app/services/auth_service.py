@@ -111,21 +111,23 @@ class TokenResult:
         ok: 令牌是否有效。
         error_code: 无效时对应的错误码（恒为 ``UNAUTHENTICATED``）；有效时为 ``None``。
         role: 有效时令牌携带的角色；无效时为 ``None``。
-        account: 有效时令牌主体（``sub``，即账号）；无效时为 ``None``。
+        account: 有效时令牌携带的展示用账号；无效时为 ``None``。
+        user_id: 有效时令牌主体（``sub``，全局唯一用户标识）；无效时为 ``None``。
     """
 
     ok: bool
     error_code: Optional[ErrorCode] = None
     role: Optional[str] = None
     account: Optional[str] = None
+    user_id: Optional[str] = None
 
     @classmethod
-    def success(cls, role: str, account: str) -> "TokenResult":
-        return cls(ok=True, error_code=None, role=role, account=account)
+    def success(cls, role: str, account: str, user_id: str) -> "TokenResult":
+        return cls(ok=True, error_code=None, role=role, account=account, user_id=user_id)
 
     @classmethod
     def unauthenticated(cls) -> "TokenResult":
-        return cls(ok=False, error_code=ErrorCode.UNAUTHENTICATED, role=None, account=None)
+        return cls(ok=False, error_code=ErrorCode.UNAUTHENTICATED, role=None, account=None, user_id=None)
 
 
 # --------------------------------------------------------------------------- #
@@ -217,16 +219,47 @@ class AuthService:
         ):
             return LoginResult.fail(ErrorCode.INVALID_CREDENTIALS)
 
-        # 5) 签发令牌：exp = now + 30min（compute_token_expiry）。
+        # 5) 签发令牌：sub=user.id（全局唯一），exp = now + 30min。
+        return LoginResult.success(token=self._issue_token(user, now), role=user.role)
+
+    def login_student(
+        self, school: str, student_id: str, password: str, now: datetime
+    ) -> LoginResult:
+        """学生登录：按「学校 + 学号 + 密码」校验并签发令牌。
+
+        学号仅在同校内唯一，故需配合学校定位学生。处理顺序与 :meth:`login` 一致：
+        必填校验 -> 定位学生 -> 空密码需重置 -> 凭据匹配 -> 签发令牌。
+        """
+        if (
+            not validate_required(school)
+            or not validate_required(student_id)
+            or not validate_required(password)
+        ):
+            return LoginResult.fail(ErrorCode.MISSING_REQUIRED_FIELD)
+
+        user = self._repository.get_student_by_school_and_id(school, student_id)
+        if user is None:
+            return LoginResult.fail(ErrorCode.INVALID_CREDENTIALS)
+        if not user.password:
+            return LoginResult.fail(ErrorCode.PASSWORD_RESET_REQUIRED)
+        if not hmac.compare_digest(
+            password.encode("utf-8"), user.password.encode("utf-8")
+        ):
+            return LoginResult.fail(ErrorCode.INVALID_CREDENTIALS)
+
+        return LoginResult.success(token=self._issue_token(user, now), role=user.role)
+
+    def _issue_token(self, user, now: datetime) -> str:
+        """签发会话令牌：``sub`` 取全局唯一 ``user.id``，``exp = now + 30min``。"""
         expiry = compute_token_expiry(now)
         claims = {
-            "sub": user.account,
+            "sub": user.id,
+            "acct": user.account,
             "role": user.role,
             "iat": _to_timestamp(now),
             "exp": _to_timestamp(expiry),
         }
-        token = jwt.encode(claims, self._secret_key, algorithm=self._algorithm)
-        return LoginResult.success(token=token, role=user.role)
+        return jwt.encode(claims, self._secret_key, algorithm=self._algorithm)
 
     # ------------------------------------------------------------------ #
     # 令牌校验（需求 1.3, 1.4）                                             #
@@ -259,12 +292,16 @@ class AuthService:
             return TokenResult.unauthenticated()
 
         role = claims.get("role")
-        account = claims.get("sub")
+        user_id = claims.get("sub")
+        account = claims.get("acct")
         exp_value = claims.get("exp")
 
         # 必备声明缺失或类型异常 -> 视为无效令牌。
-        if not isinstance(role, str) or not isinstance(account, str):
+        if not isinstance(role, str) or not isinstance(user_id, str):
             return TokenResult.unauthenticated()
+        # 兼容旧令牌（无 acct 声明）：account 回退为 user_id。
+        if not isinstance(account, str):
+            account = user_id
         if not isinstance(exp_value, (int, float)) or isinstance(exp_value, bool):
             return TokenResult.unauthenticated()
 
@@ -272,4 +309,4 @@ class AuthService:
         if not is_token_valid(expiry, now):
             return TokenResult.unauthenticated()
 
-        return TokenResult.success(role=role, account=account)
+        return TokenResult.success(role=role, account=account, user_id=user_id)

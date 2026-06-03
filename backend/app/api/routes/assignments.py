@@ -17,7 +17,7 @@ from typing import Any
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
-from app.api.deps import get_repository, require_roles, to_naive_utc
+from app.api.deps import get_repository, require_roles, to_naive_cn
 from app.api.errors import http_exception_for
 from app.api.serializers import serialize_assignment
 from app.core.errors import ErrorCode
@@ -58,7 +58,7 @@ def _validate(body: AssignmentPayload, repo: Repository) -> None:
 @router.post("", summary="创建作业")
 def create_assignment(
     body: AssignmentPayload,
-    _user=Depends(require_roles("teacher")),
+    _user=Depends(require_roles("admin", "teacher")),
     repository: Repository = Depends(get_repository),
 ) -> dict[str, Any]:
     _validate(body, repository)
@@ -69,7 +69,7 @@ def create_assignment(
             course_id=body.courseId,
             allowed_extensions=body.allowedFileTypes,
             max_file_size_mb=body.maxFileSizeMB,
-            deadline=to_naive_utc(body.deadline),
+            deadline=to_naive_cn(body.deadline),
         )
     return serialize_assignment(assignment)
 
@@ -78,7 +78,7 @@ def create_assignment(
 def update_assignment(
     assignment_id: str,
     body: AssignmentPayload,
-    _user=Depends(require_roles("teacher")),
+    _user=Depends(require_roles("admin", "teacher")),
     repository: Repository = Depends(get_repository),
 ) -> dict[str, Any]:
     assignment = repository.get_assignment(assignment_id)
@@ -91,14 +91,14 @@ def update_assignment(
         assignment.course_id = body.courseId
         assignment.allowed_extensions = list(body.allowedFileTypes)
         assignment.max_file_size_mb = body.maxFileSizeMB
-        assignment.deadline = to_naive_utc(body.deadline)
+        assignment.deadline = to_naive_cn(body.deadline)
     return serialize_assignment(assignment)
 
 
 @router.delete("/{assignment_id}", summary="删除作业")
 def delete_assignment(
     assignment_id: str,
-    _user=Depends(require_roles("teacher")),
+    _user=Depends(require_roles("admin", "teacher")),
     repository: Repository = Depends(get_repository),
 ) -> dict[str, str]:
     with repository.transaction():

@@ -327,12 +327,13 @@ class EmailService:
         """
         return build_email_body(assignment_title, submitted_at, file_name)
 
-    async def _smtp_send(self, recipient: str, body: str) -> None:
+    async def _smtp_send(self, recipient: str, body: str, subject: Optional[str] = None) -> None:
         """默认“单次发送”实现：通过 aiosmtplib 发送一封纯文本邮件。
 
         懒导入 aiosmtplib 并即时构造邮件，避免模块导入/服务构造阶段产生外部依赖
         或网络连接。该协程仅尝试一次；超时由调用方（:meth:`notify_submission`）以
         :func:`asyncio.wait_for` 控制，失败/异常由调用方按重试策略处理。
+        ``subject`` 为空时使用默认主题 :attr:`subject`。
         """
         # 延迟导入：避免导入期对 aiosmtplib 产生硬依赖/副作用。
         import aiosmtplib
@@ -341,7 +342,7 @@ class EmailService:
         message = EmailMessage()
         message["From"] = self.sender_address
         message["To"] = recipient
-        message["Subject"] = self.subject
+        message["Subject"] = subject or self.subject
         message.set_content(body)
 
         send_kwargs: dict[str, object] = {
@@ -364,6 +365,32 @@ class EmailService:
             send_kwargs["tls_context"] = context
 
         await aiosmtplib.send(message, **send_kwargs)
+
+    async def send_message(
+        self, recipient: str, subject: str, body: str
+    ) -> bool:
+        """同步等待地发送一封自定义主题/正文的邮件，返回是否成功（不抛出）。
+
+        用于邮箱验证码等需要即时知道发送结果的场景。单次发送施加
+        :attr:`timeout_seconds` 超时；任何异常/超时记日志并返回 ``False``。
+        """
+        try:
+            await asyncio.wait_for(
+                self._sender_with_subject(recipient, body, subject),
+                timeout=self.timeout_seconds,
+            )
+            return True
+        except Exception as exc:  # noqa: BLE001 - 发送失败统一返回 False
+            self._logger.warning("邮件发送失败：recipient=%s reason=%s", recipient, exc)
+            return False
+
+    async def _sender_with_subject(self, recipient: str, body: str, subject: str) -> None:
+        """按主题发送：默认走 :meth:`_smtp_send`；若注入了自定义 sender 则回退调用之。"""
+        if self._sender is self._smtp_send:
+            await self._smtp_send(recipient, body, subject)
+        else:
+            # 注入的测试 sender 签名为 (recipient, body)。
+            await self._sender(recipient, body)
 
     async def notify_submission(
         self, submission: SubmissionRecord, student_email: Optional[str]

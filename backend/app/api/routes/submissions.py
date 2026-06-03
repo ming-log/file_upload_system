@@ -32,8 +32,8 @@ from app.api.deps import (
     get_repository,
     get_storage_service,
     require_roles,
-    to_naive_utc,
-    utcnow,
+    to_naive_cn,
+    now_provider,
 )
 from app.api.errors import http_exception_for
 from app.api.serializers import serialize_submission
@@ -59,7 +59,7 @@ def list_submissions(
 ) -> list[dict[str, Any]]:
     subs = repository.list_submissions()
     if current.role == "student":
-        me = repository.get_user_by_account(current.account)
+        me = repository.get_user(current.user_id)
         if me is not None:
             subs = [s for s in subs if s.student_id == me.id]
     return [serialize_submission(s) for s in subs]
@@ -75,17 +75,17 @@ async def submit_assignment(
     repository: Repository = Depends(get_repository),
     storage: StorageService = Depends(get_storage_service),
     email_service: EmailService = Depends(get_email_service),
-    now: datetime = Depends(utcnow),
+    now: datetime = Depends(now_provider),
 ) -> dict[str, Any]:
     assignment = repository.get_assignment(assignment_id)
     if assignment is None:
         raise http_exception_for(ErrorCode.ASSIGNMENT_NOT_FOUND)
 
-    student = repository.get_user_by_account(current.account)
+    student = repository.get_user(current.user_id)
     if student is None:
         raise http_exception_for(ErrorCode.FORBIDDEN)
 
-    submitted_at = to_naive_utc(now)
+    submitted_at = to_naive_cn(now)
     if submitted_at > assignment.deadline:
         raise http_exception_for(ErrorCode.DEADLINE_PASSED)
 
@@ -175,7 +175,7 @@ def download_submission_file(
 
     # 学生仅能下载自己的提交。
     if current.role == "student":
-        me = repository.get_user_by_account(current.account)
+        me = repository.get_user(current.user_id)
         if me is None or submission.student_id != me.id:
             raise http_exception_for(ErrorCode.FORBIDDEN)
 

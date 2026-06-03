@@ -9,7 +9,10 @@ const emptyForm: FormData = { school: '', grade: '', major: '', logo: undefined 
 
 export function ClassesPage() {
   const { currentUser, classes, students, courses, addClass, updateClass, deleteClass, navigate } = useApp();
-  const myClasses = classes.filter(c => c.teacherId === currentUser?.id);
+  // 管理员可管理所有班级；教师仅管理自己创建的班级。
+  const myClasses = currentUser?.role === 'admin'
+    ? classes
+    : classes.filter(c => c.teacherId === currentUser?.id);
 
   const [editOpen, setEditOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);

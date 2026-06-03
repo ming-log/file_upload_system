@@ -23,6 +23,7 @@ from typing import Any, Optional
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.clock import now_cn_naive
 from app.models import Assignment, Class, Course, Submission, User
 
 __all__ = ["Repository", "new_id"]
@@ -78,6 +79,49 @@ class Repository:
         if exclude_id is not None:
             stmt = stmt.where(User.id != exclude_id)
         return self._session.scalar(stmt.limit(1)) is not None
+
+    def student_id_exists_in_school(
+        self, student_id: str, school: str, *, exclude_id: Optional[str] = None
+    ) -> bool:
+        """判断某学号在指定学校内是否已存在（学号仅在同校内唯一）。
+
+        通过 ``User.class_id -> Class.school`` 关联学校；无班级（``class_id`` 为空）
+        的学生不参与校内查重。
+        """
+        stmt = (
+            select(User.id)
+            .join(Class, User.class_id == Class.id)
+            .where(
+                User.role == "student",
+                User.student_id == student_id,
+                Class.school == school,
+            )
+        )
+        if exclude_id is not None:
+            stmt = stmt.where(User.id != exclude_id)
+        return self._session.scalar(stmt.limit(1)) is not None
+
+    def get_student_by_school_and_id(self, school: str, student_id: str) -> Optional[User]:
+        """按「学校 + 学号」查找学生（用于学生登录）。
+
+        若同校同学号存在多条（理论上不应发生），返回任意一条。
+        """
+        stmt = (
+            select(User)
+            .join(Class, User.class_id == Class.id)
+            .where(
+                User.role == "student",
+                User.student_id == student_id,
+                Class.school == school,
+            )
+            .limit(1)
+        )
+        return self._session.scalar(stmt)
+
+    def list_schools(self) -> list[str]:
+        """返回已创建班级中去重、排序后的学校名称列表（供学生登录下拉选择）。"""
+        rows = self._session.scalars(select(Class.school)).all()
+        return sorted({s for s in rows if s})
 
     def class_exists(self, class_id: str) -> bool:
         return self._session.scalar(select(Class.id).where(Class.id == class_id).limit(1)) is not None
@@ -175,7 +219,7 @@ class Repository:
             password=password,
             student_id=student_id,
             class_id=class_id,
-            created_at=created_at or datetime.utcnow(),
+            created_at=created_at or now_cn_naive(),
         )
         self._session.add(user)
         self._session.flush()
@@ -199,7 +243,7 @@ class Repository:
             major=major,
             logo=logo,
             teacher_id=teacher_id,
-            created_at=created_at or datetime.utcnow(),
+            created_at=created_at or now_cn_naive(),
         )
         self._session.add(clazz)
         self._session.flush()
@@ -221,7 +265,7 @@ class Repository:
             name=name,
             class_id=class_id,
             teacher_id=teacher_id,
-            created_at=created_at or datetime.utcnow(),
+            created_at=created_at or now_cn_naive(),
         )
         self._session.add(course)
         self._session.flush()
@@ -247,7 +291,7 @@ class Repository:
             allowed_extensions=list(allowed_extensions),
             max_file_size_mb=max_file_size_mb,
             deadline=deadline,
-            created_at=created_at or datetime.utcnow(),
+            created_at=created_at or now_cn_naive(),
         )
         self._session.add(assignment)
         self._session.flush()

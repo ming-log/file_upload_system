@@ -7,6 +7,9 @@
 * 默认文件存储：本地磁盘（`uploaded_files/` 目录），零外部依赖。可经环境变量
   `STORAGE_BACKEND=minio` 切换为 MinIO。
 * 已启用 CORS，默认放行本地前端端口（5173 / 3000）。
+* **时间统一为北京时间**（Asia/Shanghai, UTC+8）：所有业务时间（创建时间、截止
+  时间、提交时间，以及邮件/CSV/序列化输出）均以北京墙钟时间存储与展示，由
+  `app/core/clock.py` 统一提供，避免"存 UTC、显示本地"导致的 8 小时偏差。
 
 ## 目录结构
 
@@ -56,8 +59,12 @@ uvicorn app.main:app --reload --port 8000
 
 | 方法 & 路径                                    | 说明                       | 角色            |
 | ---------------------------------------------- | -------------------------- | --------------- |
+| `GET /auth/schools`                            | 学校列表（学生登录下拉）   | 公共            |
 | `GET /auth/captcha`                            | 获取登录验证码             | 公共            |
-| `POST /auth/login`                             | 登录，返回 JWT + 用户信息  | 公共            |
+| `POST /auth/login/student`                     | 学生登录（校+学号+码）     | 公共            |
+| `POST /auth/login/teacher`                     | 教师/管理员登录            | 公共            |
+| `POST /auth/email/send-code`                   | 发送邮箱验证码             | 学生            |
+| `POST /auth/email/verify`                      | 验证邮箱并改密             | 学生            |
 | `GET/POST /users`，`PUT/DELETE /users/{id}`    | 用户增删改查               | admin           |
 | `POST /users/batch`                            | 批量创建用户               | admin           |
 | `GET/POST /classes`，`PUT/DELETE /classes/{id}`| 班级增删改查               | teacher/admin   |
@@ -98,12 +105,28 @@ uvicorn app.main:app --reload --port 8000
 | `CORS_ORIGINS`             | 本地 5173/3000                      | 允许的前端来源（逗号分隔）        |
 | `AUTH_SECRET_KEY`          | 开发占位值                          | JWT 签名密钥（生产必改）          |
 
-## 登录验证码
+## 登录与邮箱验证
 
-`GET /auth/captcha` 返回 `{ captchaId, image }`（`image` 为 SVG data URL）。
-登录时回传 `captchaId` 与用户输入的 `captcha`。**学生登录必须通过验证码校验**；
-演示用的管理员/教师账号若未提供验证码则放行（便于快速登录）。验证码一次性使用、
+登录分两类：
+
+* **学生登录**（默认）：`POST /auth/login/student`，提交 `school`（下拉，取自
+  `GET /auth/schools` 的已建班级学校去重）+ `studentId` + `password` + 图形验证码
+  （`captchaId`/`captcha`）。**学号仅在同一学校内唯一**，不同学校可重复，故需配合
+  学校定位学生。
+* **教师/管理员登录**：`POST /auth/login/teacher`，账号 + 密码，**无需验证码**。
+  管理员也走此入口（前端显示「教师登录」）。
+
+`GET /auth/captcha` 返回 `{ captchaId, image }`（SVG data URL）。验证码一次性、
 5 分钟过期、不区分大小写。
+
+**学生首次登录强制邮箱验证 + 改密**：登录返回的用户信息含 `emailVerified`。为
+`false` 时前端引导其完成：
+
+* `POST /auth/email/send-code`（需令牌）：向学生邮箱发送 6 位验证码（10 分钟有效）。
+* `POST /auth/email/verify`（需令牌）：提交 `code` + `newPassword`，校验通过后标记
+  邮箱已验证并修改密码，方可进入系统。
+
+> JWT 主体（`sub`）使用全局唯一的 `user.id`（学生账号即学号已不再全局唯一）。
 
 ## 邮件通知
 

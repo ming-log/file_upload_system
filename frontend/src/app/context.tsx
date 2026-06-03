@@ -38,6 +38,10 @@ interface AppContextType {
   selectedAssignmentId: string | null;
   loading: boolean;
   login: (account: string, password: string, captchaId?: string, captcha?: string) => Promise<boolean>;
+  loginStudent: (school: string, studentId: string, password: string, captchaId?: string, captcha?: string) => Promise<boolean>;
+  loginTeacher: (account: string, password: string) => Promise<boolean>;
+  setCurrentUser: (user: AuthUser) => void;
+  onEmailVerified: (user: AuthUser) => Promise<void>;
   logout: () => void;
   navigate: (page: Page, opts?: { classId?: string; assignmentId?: string }) => void;
   // Users
@@ -137,7 +141,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(async (account: string, password: string, captchaId?: string, captcha?: string): Promise<boolean> => {
     try {
-      const res = await authApi.login(account, password, captchaId, captcha);
+      const res = await authApi.loginTeacher(account, password);
       setToken(res.access_token);
       setCurrentUser(res.user);
       setCurrentPage(initialPageFor(res.user));
@@ -148,6 +152,48 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       console.error(e);
       throw new ApiError(0, '网络错误，请稍后重试');
     }
+  }, [loadAll]);
+
+  const finishLogin = useCallback(async (res: { access_token: string; user: AuthUser }) => {
+    setToken(res.access_token);
+    setCurrentUser(res.user);
+    // 学生未完成邮箱验证时，停留在登录页由前端引导验证流程，暂不加载数据。
+    if (res.user.role === 'student' && res.user.emailVerified === false) {
+      return;
+    }
+    setCurrentPage(initialPageFor(res.user));
+    await loadAll(res.user);
+  }, [loadAll]);
+
+  const loginStudent = useCallback(async (school: string, studentId: string, password: string, captchaId?: string, captcha?: string): Promise<boolean> => {
+    try {
+      const res = await authApi.loginStudent(school, studentId, password, captchaId, captcha);
+      await finishLogin(res);
+      return true;
+    } catch (e) {
+      if (e instanceof ApiError) throw e;
+      console.error(e);
+      throw new ApiError(0, '网络错误，请稍后重试');
+    }
+  }, [finishLogin]);
+
+  const loginTeacher = useCallback(async (account: string, password: string): Promise<boolean> => {
+    try {
+      const res = await authApi.loginTeacher(account, password);
+      await finishLogin(res);
+      return true;
+    } catch (e) {
+      if (e instanceof ApiError) throw e;
+      console.error(e);
+      throw new ApiError(0, '网络错误，请稍后重试');
+    }
+  }, [finishLogin]);
+
+  // 学生完成邮箱验证 + 改密后：更新会话用户并进入应用、加载数据。
+  const onEmailVerified = useCallback(async (user: AuthUser) => {
+    setCurrentUser(user);
+    setCurrentPage(initialPageFor(user));
+    await loadAll(user);
   }, [loadAll]);
 
   const logout = useCallback(() => {
@@ -279,7 +325,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     <AppContext.Provider value={{
       currentUser, users, classes, students, courses, assignments, submissions,
       currentPage, selectedClassId, selectedAssignmentId, loading,
-      login, logout, navigate,
+      login, loginStudent, loginTeacher, setCurrentUser, onEmailVerified, logout, navigate,
       addUser, updateUser, deleteUser, bulkAddUsers,
       addClass, updateClass, deleteClass,
       addStudent, updateStudent, deleteStudent, bulkAddStudents,

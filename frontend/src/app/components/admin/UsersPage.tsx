@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Plus, Trash2, Edit2, Users, Upload, X, Check, AlertCircle, UserPlus } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useApp } from '../../context';
+import { formatDate } from '../../datetime';
 import type { User } from '../../types';
 
 const ROLES = [
@@ -184,7 +185,7 @@ export function UsersPage() {
                 <td className="px-4 py-3 text-sm text-gray-800">{u.name}</td>
                 <td className="px-4 py-3"><RoleBadge role={u.role} /></td>
                 <td className="px-4 py-3 text-sm text-gray-500">{u.email || '—'}</td>
-                <td className="px-4 py-3 text-sm text-gray-500">{new Date(u.createdAt).toLocaleDateString('zh-CN')}</td>
+                <td className="px-4 py-3 text-sm text-gray-500">{formatDate(u.createdAt)}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-1">
                     <button onClick={() => openEdit(u)} className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-colors">

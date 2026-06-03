@@ -83,11 +83,62 @@ def create_session_factory(engine: Engine) -> sessionmaker[Session]:
 
 
 def create_all(engine: Engine) -> None:
-    """依据全部 ORM 模型的元数据在目标库中创建表。"""
+    """依据全部 ORM 模型的元数据在目标库中创建表，并执行轻量列迁移。"""
     # 延迟导入模型以确保其在元数据中完成注册，同时避免模块级循环导入。
     from app import models  # noqa: F401  (import for side effect: model registration)
 
     Base.metadata.create_all(engine)
+    _run_lightweight_migrations(engine)
+
+
+def _run_lightweight_migrations(engine: Engine) -> None:
+    """为已存在的旧库补充新增列、移除过时约束（幂等）。
+
+    ``create_all`` 不会修改已存在表的结构，因此对旧库需手动迁移：
+
+    1. 为 ``users`` 表补充 ``email_verified`` 列（默认 0=未验证）。
+    2. 移除 ``users`` 表上过时的全局唯一约束（``uq_users_account`` /
+       ``uq_users_student_id``）——新模型允许学号跨校重复、account 由应用层按角色
+       校验唯一。SQLite 无法直接 DROP 约束，故通过「建新表 -> 拷贝数据 -> 替换」重建。
+    """
+    from sqlalchemy import inspect, text
+
+    inspector = inspect(engine)
+    if "users" not in inspector.get_table_names():
+        return
+
+    columns = {c["name"] for c in inspector.get_columns("users")}
+    if "email_verified" not in columns:
+        with engine.begin() as conn:
+            conn.execute(
+                text("ALTER TABLE users ADD COLUMN email_verified BOOLEAN NOT NULL DEFAULT 0")
+            )
+
+    # 检测过时唯一约束，若存在则重建 users 表（仅 SQLite 需要此处理）。
+    if engine.dialect.name == "sqlite":
+        uniques = {uc["name"] for uc in inspect(engine).get_unique_constraints("users")}
+        if {"uq_users_account", "uq_users_student_id"} & uniques:
+            _rebuild_users_table_without_unique(engine)
+
+
+def _rebuild_users_table_without_unique(engine: Engine) -> None:
+    """重建 SQLite ``users`` 表以移除过时唯一约束，保留全部数据。"""
+    from sqlalchemy import text
+
+    with engine.begin() as conn:
+        # 读取现有列顺序，保证拷贝时列对齐。
+        rows = conn.execute(text("PRAGMA table_info(users)")).fetchall()
+        col_names = [r[1] for r in rows]
+        cols_csv = ", ".join(col_names)
+        conn.execute(text("PRAGMA foreign_keys=OFF"))
+        conn.execute(text("ALTER TABLE users RENAME TO users_old"))
+        # 依据当前模型重新建表（无 account/student_id 唯一约束）。
+        Base.metadata.tables["users"].create(bind=conn)
+        conn.execute(
+            text(f"INSERT INTO users ({cols_csv}) SELECT {cols_csv} FROM users_old")
+        )
+        conn.execute(text("DROP TABLE users_old"))
+        conn.execute(text("PRAGMA foreign_keys=ON"))
 
 
 def drop_all(engine: Engine) -> None:

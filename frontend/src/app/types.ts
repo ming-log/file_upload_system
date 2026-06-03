@@ -71,7 +71,9 @@ export interface AuthUser {
   account: string;
   name: string;
   email: string;
+  emailVerified?: boolean;
   classId?: string;
+  school?: string;
 }
 
 export type Page =

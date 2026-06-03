@@ -17,7 +17,7 @@ from __future__ import annotations
 import os
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from functools import lru_cache
 from typing import Optional
 
@@ -37,6 +37,7 @@ from app.adapters.storage_service import (
     StorageService,
 )
 from app.api.middleware import parse_bearer_token
+from app.core.clock import now_cn, to_naive_cn as _to_naive_cn
 from app.core.errors import ErrorCode
 from app.db import (
     DEFAULT_DATABASE_URL,
@@ -47,11 +48,12 @@ from app.db import (
 from app.repository import Repository
 from app.services.auth_service import AuthService
 from app.services.captcha_service import CaptchaService
+from app.services.email_verification_service import EmailVerificationService
 
 __all__ = [
     "CurrentUser",
-    "utcnow",
-    "to_naive_utc",
+    "now_provider",
+    "to_naive_cn",
     "get_engine",
     "get_session",
     "get_repository",
@@ -61,6 +63,7 @@ __all__ = [
     "get_storage_service",
     "get_email_service",
     "get_captcha_service",
+    "get_email_verification_service",
 ]
 
 
@@ -75,6 +78,7 @@ class CurrentUser:
 
     role: str
     account: str
+    user_id: str
 
 
 # --------------------------------------------------------------------------- #
@@ -82,16 +86,14 @@ class CurrentUser:
 # --------------------------------------------------------------------------- #
 
 
-def utcnow() -> datetime:
-    """返回当前 UTC 时间（aware）。"""
-    return datetime.now(timezone.utc)
+def now_provider() -> datetime:
+    """返回当前北京时间（aware，UTC+8）。用作请求级"现在"的依赖注入提供者。"""
+    return now_cn()
 
 
-def to_naive_utc(value: datetime) -> datetime:
-    """将 datetime 归一化为 naive-UTC（去除时区信息）。"""
-    if value.tzinfo is not None:
-        return value.astimezone(timezone.utc).replace(tzinfo=None)
-    return value
+def to_naive_cn(value: datetime) -> datetime:
+    """将 datetime 归一化为北京时间的 naive datetime（用于存储与比较）。"""
+    return _to_naive_cn(value)
 
 
 # --------------------------------------------------------------------------- #
@@ -153,6 +155,12 @@ def _default_captcha_service() -> CaptchaService:
     return CaptchaService()
 
 
+@lru_cache(maxsize=1)
+def _default_email_verification_service() -> EmailVerificationService:
+    """构造（并缓存）进程级邮箱验证码服务。"""
+    return EmailVerificationService()
+
+
 def get_storage_service() -> StorageService:
     return _default_storage_service()
 
@@ -165,6 +173,10 @@ def get_captcha_service() -> CaptchaService:
     return _default_captcha_service()
 
 
+def get_email_verification_service() -> EmailVerificationService:
+    return _default_email_verification_service()
+
+
 # --------------------------------------------------------------------------- #
 # 认证注入                                                                      #
 # --------------------------------------------------------------------------- #
@@ -173,7 +185,7 @@ def get_captcha_service() -> CaptchaService:
 def get_current_user(
     authorization: Optional[str] = Header(default=None),
     auth_service: AuthService = Depends(get_auth_service),
-    now: datetime = Depends(utcnow),
+    now: datetime = Depends(now_provider),
 ) -> CurrentUser:
     """解析并校验 Bearer 令牌，注入当前用户上下文；失败返回 401。"""
     token = parse_bearer_token(authorization)
@@ -187,7 +199,7 @@ def get_current_user(
             },
             headers={"WWW-Authenticate": "Bearer"},
         )
-    return CurrentUser(role=result.role, account=result.account)
+    return CurrentUser(role=result.role, account=result.account, user_id=result.user_id)
 
 
 def require_roles(*roles: str) -> Callable[..., CurrentUser]:

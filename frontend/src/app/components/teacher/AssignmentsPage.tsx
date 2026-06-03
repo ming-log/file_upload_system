@@ -3,6 +3,8 @@ import { Plus, Trash2, Edit2, ClipboardList, X, AlertCircle, Eye, Clock, CheckCi
 import * as Dialog from '@radix-ui/react-dialog';
 import { useApp } from '../../context';
 import { submissionsApi, ApiError } from '../../api';
+import { parseDateTime, formatDateTime, toDatetimeLocalValue } from '../../datetime';
+import { Tooltip, TooltipTrigger, TooltipContent } from '../ui/tooltip';
 import type { Assignment } from '../../types';
 import { FILE_TYPE_OPTIONS } from '../../types';
 
@@ -32,7 +34,8 @@ function formatFileSize(bytes: number) {
 
 function AssignmentStatus({ deadline }: { deadline: string }) {
   const now = new Date();
-  const dl = new Date(deadline);
+  const dl = parseDateTime(deadline);
+  if (!dl) return null;
   const diff = dl.getTime() - now.getTime();
   const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
 
@@ -44,7 +47,9 @@ function AssignmentStatus({ deadline }: { deadline: string }) {
 export function AssignmentsPage() {
   const { currentUser, classes, courses, assignments, submissions, students, addAssignment, updateAssignment, deleteAssignment } = useApp();
 
-  const myCourses = courses.filter(c => c.teacherId === currentUser?.id);
+  const myCourses = currentUser?.role === 'admin'
+    ? courses
+    : courses.filter(c => c.teacherId === currentUser?.id);
   const myAssignments = assignments.filter(a => myCourses.some(c => c.id === a.courseId));
 
   const [editOpen, setEditOpen] = useState(false);
@@ -120,7 +125,7 @@ export function AssignmentsPage() {
       courseId: a.courseId,
       allowedFileTypes: a.allowedFileTypes,
       maxFileSizeMB: a.maxFileSizeMB,
-      deadline: a.deadline,
+      deadline: toDatetimeLocalValue(a.deadline),
     });
     setEditingId(a.id);
     setFormError('');
@@ -206,12 +211,12 @@ export function AssignmentsPage() {
         <table className="w-full table-fixed">
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50">
-              <th className="text-left px-4 py-3 text-xs text-gray-500 uppercase tracking-wide w-[26%]">作业标题</th>
-              <th className="text-left px-4 py-3 text-xs text-gray-500 uppercase tracking-wide w-[14%]">关联课程</th>
-              <th className="text-left px-4 py-3 text-xs text-gray-500 uppercase tracking-wide w-[16%]">文件限制</th>
-              <th className="text-left px-4 py-3 text-xs text-gray-500 uppercase tracking-wide whitespace-nowrap">截止时间</th>
-              <th className="text-left px-4 py-3 text-xs text-gray-500 uppercase tracking-wide whitespace-nowrap">状态</th>
-              <th className="text-left px-4 py-3 text-xs text-gray-500 uppercase tracking-wide whitespace-nowrap">提交</th>
+              <th className="text-left px-4 py-3 text-xs text-gray-500 uppercase tracking-wide w-[22%]">作业标题</th>
+              <th className="text-left px-4 py-3 text-xs text-gray-500 uppercase tracking-wide w-[12%]">关联课程</th>
+              <th className="text-left px-4 py-3 text-xs text-gray-500 uppercase tracking-wide w-[13%]">文件限制</th>
+              <th className="text-left px-4 py-3 text-xs text-gray-500 uppercase tracking-wide w-[16%] whitespace-nowrap">截止时间</th>
+              <th className="text-left px-4 py-3 text-xs text-gray-500 uppercase tracking-wide w-[9%] whitespace-nowrap">状态</th>
+              <th className="text-left px-4 py-3 text-xs text-gray-500 uppercase tracking-wide w-[8%] whitespace-nowrap">提交</th>
               <th className="text-right px-4 py-3 text-xs text-gray-500 uppercase tracking-wide whitespace-nowrap">操作</th>
             </tr>
           </thead>
@@ -230,7 +235,18 @@ export function AssignmentsPage() {
                 <tr key={a.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3">
                     <p className="text-sm text-gray-800 font-medium truncate">{a.title}</p>
-                    <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{a.content}</p>
+                    {a.content ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <p className="text-xs text-gray-400 mt-0.5 line-clamp-1 cursor-help">{a.content}</p>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-sm whitespace-pre-wrap text-left">
+                          {a.content}
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <p className="text-xs text-gray-300 mt-0.5">无说明</p>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-600 truncate">{getCourseName(a.courseId)}</td>
                   <td className="px-4 py-3 text-sm text-gray-500">
@@ -245,7 +261,7 @@ export function AssignmentsPage() {
                     <p className="text-xs text-gray-400 mt-0.5">≤ {a.maxFileSizeMB}MB</p>
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">
-                    {new Date(a.deadline).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                    {formatDateTime(a.deadline)}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap"><AssignmentStatus deadline={a.deadline} /></td>
                   <td className="px-4 py-3 whitespace-nowrap">
@@ -452,7 +468,11 @@ export function AssignmentsPage() {
                     <tbody>
                       {assignStudents.map(s => {
                         const sub = assignmentSubmissions.find(sb => sb.studentId === s.id);
-                        const isLate = sub && selectedAssignment && new Date(sub.submittedAt) > new Date(selectedAssignment.deadline);
+                        const isLate = sub && selectedAssignment && (() => {
+                          const sa = parseDateTime(sub.submittedAt);
+                          const dl = parseDateTime(selectedAssignment.deadline);
+                          return !!(sa && dl && sa > dl);
+                        })();
                         return (
                           <tr key={s.id} className="border-b border-gray-50 hover:bg-gray-50">
                             <td className="px-4 py-3 text-sm font-mono text-gray-700">{s.studentId}</td>
@@ -467,7 +487,7 @@ export function AssignmentsPage() {
                               )}
                             </td>
                             <td className="px-4 py-3 text-sm text-gray-500">
-                              {sub ? new Date(sub.submittedAt).toLocaleString('zh-CN') : '—'}
+                              {sub ? formatDateTime(sub.submittedAt) : '—'}
                             </td>
                             <td className="px-4 py-3">
                               {sub ? (

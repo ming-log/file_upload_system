@@ -20,33 +20,41 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Optional
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import JSON
 
+from app.core.clock import now_cn_naive
 from app.db import Base
 
 __all__ = ["User", "Class", "Course", "Assignment", "Submission"]
 
 
 class User(Base):
-    """统一用户模型：admin、teacher、student 共用一张表，通过 ``role`` 区分。"""
+    """统一用户模型：admin、teacher、student 共用一张表，通过 ``role`` 区分。
+
+    登录标识约定：
+    * admin / teacher 通过全局唯一的 ``account`` 登录；
+    * student 通过「所在学校 + 学号」登录（学号 ``student_id`` 仅在同一学校内唯一，
+      不同学校可重复），学校取自其班级 :attr:`Class.school`。
+
+    因此不再设置 ``account`` / ``student_id`` 的全局唯一约束，唯一性改由应用层
+    按角色与学校上下文校验（见 repository 与各路由校验）。
+    """
 
     __tablename__ = "users"
-    __table_args__ = (
-        UniqueConstraint("account", name="uq_users_account"),
-        UniqueConstraint("student_id", name="uq_users_student_id"),
-    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     # role ∈ {admin, teacher, student}（小写，与前端一致）。
     role: Mapped[str] = mapped_column(String(16), nullable=False)
-    # account：系统内唯一登录标识。
+    # account：admin/teacher 的全局唯一登录标识；student 存其学号（不参与登录）。
     account: Mapped[str] = mapped_column(String(64), nullable=False)
     name: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     email: Mapped[Optional[str]] = mapped_column(String(254), nullable=True)
     password: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    # email_verified：学生是否已完成邮箱验证（首次登录强制验证并改密）。
+    email_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=now_cn_naive)
 
     # ---- Student 特有字段（其它角色为空） ----
     student_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
@@ -81,7 +89,7 @@ class Class(Base):
     # logo：可选，前端以 base64 data URL 形式上传，存储为长文本。
     logo: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     teacher_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=now_cn_naive)
 
     # ---- 关系 ----
     teacher: Mapped["User"] = relationship(
@@ -106,7 +114,7 @@ class Course(Base):
     name: Mapped[str] = mapped_column(String(50), nullable=False)
     class_id: Mapped[str] = mapped_column(String(36), ForeignKey("classes.id"), nullable=False)
     teacher_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=now_cn_naive)
 
     # ---- 关系 ----
     enrolled_class: Mapped["Class"] = relationship("Class", back_populates="courses")
@@ -131,7 +139,7 @@ class Assignment(Base):
     allowed_extensions: Mapped[list[str]] = mapped_column(JSON, nullable=False)
     max_file_size_mb: Mapped[int] = mapped_column(Integer, nullable=False, default=5)
     deadline: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=now_cn_naive)
 
     # ---- 关系 ----
     course: Mapped["Course"] = relationship("Course", back_populates="assignments")

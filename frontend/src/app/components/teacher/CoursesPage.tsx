@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Plus, Trash2, Edit2, BookCopy, X, AlertCircle } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useApp } from '../../context';
+import { formatDate } from '../../datetime';
 import type { Course } from '../../types';
 
 interface FormData { semester: string; name: string; classId: string; }
@@ -12,8 +13,12 @@ const SEMESTERS = ['2024春季学期', '2024秋季学期', '2025春季学期', '
 export function CoursesPage() {
   const { currentUser, classes, courses, assignments, addCourse, updateCourse, deleteCourse } = useApp();
 
-  const myClasses = classes.filter(c => c.teacherId === currentUser?.id);
-  const myCourses = courses.filter(c => c.teacherId === currentUser?.id);
+  const myClasses = currentUser?.role === 'admin'
+    ? classes
+    : classes.filter(c => c.teacherId === currentUser?.id);
+  const myCourses = currentUser?.role === 'admin'
+    ? courses
+    : courses.filter(c => c.teacherId === currentUser?.id);
 
   const [editOpen, setEditOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -126,7 +131,7 @@ export function CoursesPage() {
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-600">{getClassName(c.classId)}</td>
                   <td className="px-4 py-3 text-sm text-gray-600">{aCount}</td>
-                  <td className="px-4 py-3 text-sm text-gray-500">{new Date(c.createdAt).toLocaleDateString('zh-CN')}</td>
+                  <td className="px-4 py-3 text-sm text-gray-500">{formatDate(c.createdAt)}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
                       <button onClick={() => openEdit(c)} className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-colors">

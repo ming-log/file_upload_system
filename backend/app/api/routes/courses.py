@@ -42,14 +42,14 @@ def list_courses(
 @router.post("", summary="创建课程")
 def create_course(
     body: CoursePayload,
-    current: CurrentUser = Depends(require_roles("teacher")),
+    current: CurrentUser = Depends(require_roles("admin", "teacher")),
     repository: Repository = Depends(get_repository),
 ) -> dict[str, Any]:
     if not (validate_required(body.semester) and validate_required(body.name) and validate_required(body.classId)):
         raise http_exception_for(ErrorCode.MISSING_REQUIRED_FIELD)
     if not repository.class_exists(body.classId):
         raise http_exception_for(ErrorCode.CLASS_NOT_FOUND)
-    teacher = repository.get_user_by_account(current.account)
+    teacher = repository.get_user(current.user_id)
     if teacher is None:
         raise http_exception_for(ErrorCode.FORBIDDEN)
     with repository.transaction():
@@ -66,7 +66,7 @@ def create_course(
 def update_course(
     course_id: str,
     body: CoursePayload,
-    _user=Depends(require_roles("teacher")),
+    _user=Depends(require_roles("admin", "teacher")),
     repository: Repository = Depends(get_repository),
 ) -> dict[str, Any]:
     course = repository.get_course(course_id)
@@ -86,7 +86,7 @@ def update_course(
 @router.delete("/{course_id}", summary="删除课程")
 def delete_course(
     course_id: str,
-    _user=Depends(require_roles("teacher")),
+    _user=Depends(require_roles("admin", "teacher")),
     repository: Repository = Depends(get_repository),
 ) -> dict[str, str]:
     with repository.transaction():
