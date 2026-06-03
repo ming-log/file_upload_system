@@ -44,6 +44,20 @@ uvicorn app.main:app --reload --port 8000
 * 健康检查：`GET /health`
 * 接口文档：`http://localhost:8000/docs`
 
+## 创建初始管理员
+
+系统不会自动播种任何账号，全新数据库需先创建一个管理员账号才能登录：
+
+```bash
+# 交互式输入密码（推荐，密码不会进入命令行历史）
+python -m app.create_admin --account admin --email admin@example.com
+
+# 或通过环境变量提供密码
+set ADMIN_PASSWORD=<强密码> && python -m app.create_admin --account admin
+```
+
+该命令幂等：若目标账号或任意管理员已存在则跳过。登录后即可在管理端创建教师、班级、课程与学生。
+
 ## 主要 API
 
 | 方法 & 路径                                    | 说明                       | 角色            |

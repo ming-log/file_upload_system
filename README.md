@@ -15,6 +15,7 @@ file_upload_system/
 ├── backend/                  # FastAPI 后端（全量 CRUD REST API）
 │   ├── app/
 │   │   ├── main.py           # 应用工厂 + CORS
+│   │   ├── create_admin.py   # 创建初始管理员的 CLI（幂等）
 │   │   ├── models.py         # ORM 模型（角色小写，多文件提交）
 │   │   ├── repository.py     # 全量 CRUD 仓储 + 级联删除
 │   │   ├── core/             # validators(纯函数) / errors
@@ -57,6 +58,15 @@ python -m uvicorn app.main:app --reload --port 8000
 
 - API 服务：http://localhost:8000
 - 交互式文档（Swagger）：http://localhost:8000/docs
+
+> 首次部署需创建一个初始管理员账号（系统不再自动播种任何账号）：
+>
+> ```bash
+> # 交互式输入密码（推荐）
+> python -m app.create_admin --account admin --email admin@example.com
+> ```
+>
+> 该命令幂等；登录后即可在管理端创建教师、班级、课程与学生。
 
 ### 2. 启动前端
 
