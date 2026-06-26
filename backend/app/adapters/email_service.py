@@ -42,9 +42,13 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import socket
+import smtplib
+import ssl
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Awaitable, Callable, Optional
+from urllib.parse import urlparse
 
 __all__ = [
     "EMAIL_TIME_FORMAT",
@@ -195,6 +199,70 @@ def next_attempt_schedule(
     return [interval_seconds] * max_retries
 
 
+def _open_http_connect_socket(
+    proxy_url: str, target_host: str, target_port: int, timeout: float
+) -> socket.socket:
+    """Open a TCP tunnel through an HTTP CONNECT proxy."""
+    parsed = urlparse(proxy_url)
+    if parsed.scheme and parsed.scheme.lower() not in {"http", "https"}:
+        raise ValueError("SMTP_PROXY only supports HTTP CONNECT proxies")
+
+    proxy_host = parsed.hostname or parsed.path
+    proxy_port = parsed.port or 8080
+    if not proxy_host:
+        raise ValueError("SMTP_PROXY is missing a host")
+
+    sock = socket.create_connection((proxy_host, proxy_port), timeout=timeout)
+    try:
+        request = (
+            f"CONNECT {target_host}:{target_port} HTTP/1.1\r\n"
+            f"Host: {target_host}:{target_port}\r\n"
+            "Proxy-Connection: Keep-Alive\r\n"
+            "\r\n"
+        )
+        sock.sendall(request.encode("ascii"))
+        response = b""
+        while b"\r\n\r\n" not in response:
+            chunk = sock.recv(4096)
+            if not chunk:
+                break
+            response += chunk
+            if len(response) > 65536:
+                break
+        status_line = response.split(b"\r\n", 1)[0].decode("iso-8859-1", "replace")
+        if " 200 " not in f" {status_line} ":
+            raise OSError(f"SMTP proxy CONNECT failed: {status_line}")
+        return sock
+    except Exception:
+        sock.close()
+        raise
+
+
+class _ProxySMTP(smtplib.SMTP):
+    """SMTP client that connects through an HTTP CONNECT proxy."""
+
+    def __init__(self, proxy_url: str, host: str, port: int, **kwargs: object) -> None:
+        self._proxy_url = proxy_url
+        super().__init__(host=host, port=port, **kwargs)
+
+    def _get_socket(self, host: str, port: int, timeout: float) -> socket.socket:
+        return _open_http_connect_socket(self._proxy_url, host, port, timeout)
+
+
+class _ProxySMTPSSL(smtplib.SMTP_SSL):
+    """SMTP_SSL client that connects through an HTTP CONNECT proxy."""
+
+    def __init__(self, proxy_url: str, host: str, port: int, **kwargs: object) -> None:
+        self._proxy_url = proxy_url
+        super().__init__(host=host, port=port, **kwargs)
+
+    def _get_socket(self, host: str, port: int, timeout: float) -> socket.socket:
+        raw_sock = _open_http_connect_socket(self._proxy_url, host, port, timeout)
+        if self.debuglevel > 0:
+            self._print_debug("connect:", (host, port))
+        return self.context.wrap_socket(raw_sock, server_hostname=host)
+
+
 # --------------------------------------------------------------------------- #
 # 服务类                                                                        #
 # --------------------------------------------------------------------------- #
@@ -248,6 +316,7 @@ class EmailService:
         sender_address: Optional[str] = None,
         smtp_tls_mode: Optional[str] = None,
         smtp_allow_invalid_certs: Optional[bool] = None,
+        smtp_proxy: Optional[str] = None,
     ) -> None:
         # 注入点：未显式提供时回退到基于 aiosmtplib 的默认发送实现。
         self._sender: SendFn = sender if sender is not None else self._smtp_send
@@ -269,6 +338,7 @@ class EmailService:
         self.smtp_port = smtp_port or int(os.getenv("SMTP_PORT", "25"))
         self.smtp_username = smtp_username or os.getenv("SMTP_USERNAME")
         self.smtp_password = smtp_password or os.getenv("SMTP_PASSWORD")
+        self.smtp_proxy = smtp_proxy or os.getenv("SMTP_PROXY")
 
         # TLS 模式：auto / ssl（隐式 TLS）/ starttls / none。
         # 兼容旧的 SMTP_USE_TLS 布尔开关与显式 smtp_use_tls 参数。
@@ -338,8 +408,6 @@ class EmailService:
         :func:`asyncio.wait_for` 控制，失败/异常由调用方按重试策略处理。
         ``subject`` 为空时使用默认主题 :attr:`subject`。
         """
-        # 延迟导入：避免导入期对 aiosmtplib 产生硬依赖/副作用。
-        import aiosmtplib
         from email.message import EmailMessage
 
         message = EmailMessage()
@@ -347,6 +415,13 @@ class EmailService:
         message["To"] = recipient
         message["Subject"] = subject or self.subject
         message.set_content(body)
+
+        if self.smtp_proxy:
+            await asyncio.to_thread(self._smtp_send_via_proxy, message)
+            return
+
+        # 延迟导入：避免导入期对 aiosmtplib 产生硬依赖/副作用。
+        import aiosmtplib
 
         send_kwargs: dict[str, object] = {
             "hostname": self.smtp_host,
@@ -368,6 +443,41 @@ class EmailService:
             send_kwargs["tls_context"] = context
 
         await aiosmtplib.send(message, **send_kwargs)
+
+    def _smtp_send_via_proxy(self, message: "EmailMessage") -> None:
+        """通过 HTTP CONNECT 代理同步发送邮件，供 :meth:`_smtp_send` 在线程中调用。"""
+        context = ssl.create_default_context()
+        if self.smtp_allow_invalid_certs:
+            context.check_hostname = False
+            context.verify_mode = ssl.CERT_NONE
+
+        if self.smtp_use_tls:
+            smtp: smtplib.SMTP = _ProxySMTPSSL(
+                self.smtp_proxy or "",
+                self.smtp_host,
+                self.smtp_port,
+                timeout=self.timeout_seconds,
+                context=context,
+            )
+        else:
+            smtp = _ProxySMTP(
+                self.smtp_proxy or "",
+                self.smtp_host,
+                self.smtp_port,
+                timeout=self.timeout_seconds,
+            )
+
+        try:
+            if self.smtp_start_tls:
+                smtp.starttls(context=context)
+            if self.smtp_username and self.smtp_password:
+                smtp.login(self.smtp_username, self.smtp_password)
+            smtp.send_message(message)
+        finally:
+            try:
+                smtp.quit()
+            except Exception:
+                smtp.close()
 
     async def send_message(
         self, recipient: str, subject: str, body: str

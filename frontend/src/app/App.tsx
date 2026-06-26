@@ -15,8 +15,8 @@ function AppContent() {
 
   if (!currentUser) return <LoginPage />;
 
-  // 学生与教师首次登录未完成邮箱验证：强制进入验证 + 改密流程（管理员豁免）。
-  if ((currentUser.role === 'student' || currentUser.role === 'teacher') && currentUser.emailVerified === false) {
+  // 学生首次登录未完成邮箱验证：强制进入验证 + 改密流程。
+  if (currentUser.role === 'student' && currentUser.emailVerified === false) {
     return <EmailVerificationGate />;
   }
 

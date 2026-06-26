@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { ChevronLeft, Plus, Trash2, Edit2, Upload, Users, X, AlertCircle, Check, UserPlus } from 'lucide-react';
+import { ChevronLeft, Plus, Trash2, Edit2, Upload, Users, X, AlertCircle, Check, UserPlus, Download, FileSpreadsheet } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
+import * as XLSX from 'xlsx';
 import { useApp } from '../../context';
 import { PasswordInput } from '../ui/PasswordInput';
 import type { Student } from '../../types';
@@ -20,7 +21,7 @@ export function ClassDetailPage() {
   const [form, setForm] = useState<FormData>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formError, setFormError] = useState('');
-  const [bulkText, setBulkText] = useState('');
+  const [selectedFileName, setSelectedFileName] = useState('');
   const [bulkError, setBulkError] = useState('');
   const [bulkSuccess, setBulkSuccess] = useState(0);
   const [search, setSearch] = useState('');
@@ -50,45 +51,79 @@ export function ClassDetailPage() {
   const handleSave = () => {
     if (!form.studentId.trim()) { setFormError('学号不能为空'); return; }
     if (!form.name.trim()) { setFormError('姓名不能为空'); return; }
-    if (!form.email.trim()) { setFormError('邮箱不能为空'); return; }
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email.trim())) { setFormError('邮箱格式不正确'); return; }
+    if (form.email.trim() && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email.trim())) { setFormError('邮箱格式不正确'); return; }
     const dup = students.find(s => s.studentId === form.studentId.trim() && s.id !== editingId);
     if (dup) { setFormError('该学号已存在'); return; }
     if (editingId) {
       const existing = students.find(s => s.id === editingId)!;
-      updateStudent({ ...existing, ...form, studentId: form.studentId.trim(), name: form.name.trim(), password: form.password || 'minglog666' });
+      updateStudent({ ...existing, ...form, studentId: form.studentId.trim(), name: form.name.trim(), email: form.email.trim(), password: form.password || 'minglog666' });
     } else {
       addStudent({ studentId: form.studentId.trim(), name: form.name.trim(), email: form.email.trim(), password: form.password || 'minglog666', classId: selectedClassId! });
     }
     setEditOpen(false);
   };
 
-  const handleBulkImport = () => {
+  const handleDownloadTemplate = () => {
+    const rows = [
+      ['学号', '姓名', '邮箱', '初始密码'],
+      ['2022001', '张三', '', ''],
+      ['2022002', '李四', 'lisi@example.com', 'minglog666'],
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{ wch: 18 }, { wch: 14 }, { wch: 28 }, { wch: 16 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '学生导入模板');
+    XLSX.writeFile(wb, '学生导入模板.xlsx');
+  };
+
+  const handleExcelFile = async (file: File | undefined) => {
     setBulkError('');
     setBulkSuccess(0);
-    const lines = bulkText.trim().split('\n').filter(l => l.trim());
-    if (!lines.length) { setBulkError('请输入学生数据'); return; }
+    if (!file) return;
+    setSelectedFileName(file.name);
+
     const rows: Omit<Student, 'id'>[] = [];
     const errors: string[] = [];
-    const allIds = students.map(s => s.studentId);
+    const existingIds = new Set(classStudents.map(s => s.studentId));
+    const seenIds = new Set<string>();
 
-    lines.forEach((line, i) => {
-      const parts = line.split(',').map(p => p.trim());
-      if (parts.length < 3) { errors.push(`第${i + 1}行格式错误（需要：学号,姓名,邮箱）`); return; }
-      const [studentId, name, email = '', password = 'minglog666'] = parts;
-      if (!studentId) { errors.push(`第${i + 1}行学号为空`); return; }
-      if (!name) { errors.push(`第${i + 1}行姓名为空`); return; }
-      if (!email) { errors.push(`第${i + 1}行邮箱为空（邮箱为必填项）`); return; }
-      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { errors.push(`第${i + 1}行邮箱"${email}"格式不正确`); return; }
-      if (allIds.includes(studentId)) { errors.push(`第${i + 1}行学号"${studentId}"已存在`); return; }
-      rows.push({ studentId, name, email, password: password || 'minglog666', classId: selectedClassId! });
-      allIds.push(studentId);
-    });
+    try {
+      const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const matrix = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: '', raw: false });
+      const [header = [], ...dataRows] = matrix;
+      const normalize = (v: unknown) => String(v ?? '').trim();
+      const headerMap = new Map(header.map((h, i) => [normalize(h), i]));
+      const requiredHeaders = ['学号', '姓名', '邮箱', '初始密码'];
+      const missingHeaders = requiredHeaders.filter(h => !headerMap.has(h));
+      if (missingHeaders.length) {
+        setBulkError(`模板列缺失：${missingHeaders.join('、')}`);
+        return;
+      }
+
+      dataRows.forEach((row, index) => {
+        const excelRow = index + 2;
+        const studentId = normalize(row[headerMap.get('学号')!]);
+        const name = normalize(row[headerMap.get('姓名')!]);
+        const email = normalize(row[headerMap.get('邮箱')!]);
+        const password = normalize(row[headerMap.get('初始密码')!]);
+        if (!studentId && !name && !email && !password) return;
+        if (!studentId) { errors.push(`第${excelRow}行学号为空`); return; }
+        if (!name) { errors.push(`第${excelRow}行姓名为空`); return; }
+        if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { errors.push(`第${excelRow}行邮箱"${email}"格式不正确`); return; }
+        if (existingIds.has(studentId) || seenIds.has(studentId)) { errors.push(`第${excelRow}行学号"${studentId}"已存在`); return; }
+        rows.push({ studentId, name, email, password: password || 'minglog666', classId: selectedClassId! });
+        seenIds.add(studentId);
+      });
+    } catch {
+      setBulkError('Excel 文件读取失败，请确认使用 .xlsx 模板文件');
+      return;
+    }
 
     if (errors.length) { setBulkError(errors.join('\n')); return; }
-    bulkAddStudents(rows, selectedClassId!);
+    if (!rows.length) { setBulkError('模板中没有可导入的学生数据'); return; }
+    await bulkAddStudents(rows, selectedClassId!);
     setBulkSuccess(rows.length);
-    setBulkText('');
   };
 
   return (
@@ -109,7 +144,7 @@ export function ClassDetailPage() {
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => { setBulkText(''); setBulkError(''); setBulkSuccess(0); setBulkOpen(true); }}
+            onClick={() => { setSelectedFileName(''); setBulkError(''); setBulkSuccess(0); setBulkOpen(true); }}
             className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors"
           >
             <Upload className="w-4 h-4" />批量导入
@@ -195,7 +230,7 @@ export function ClassDetailPage() {
               {[
                 { key: 'studentId', label: '学号', placeholder: '例：2022001', required: true },
                 { key: 'name', label: '姓名', placeholder: '学生真实姓名', required: true },
-                { key: 'email', label: '邮箱', placeholder: '电子邮箱（必填）', required: true },
+                { key: 'email', label: '邮箱', placeholder: '电子邮箱（可选）' },
                 { key: 'password', label: '密码', placeholder: '默认：minglog666' },
               ].map(f => (
                 <div key={f.key}>
@@ -246,21 +281,36 @@ export function ClassDetailPage() {
               </Dialog.Title>
               <Dialog.Close className="p-1 rounded-lg hover:bg-gray-100 text-gray-400"><X className="w-5 h-5" /></Dialog.Close>
             </div>
-            <div className="bg-blue-50 rounded-lg p-3 text-xs text-blue-700 mb-3 font-mono">
-              格式：学号,姓名,邮箱,密码(可选)<br />
-              说明：邮箱为必填项；密码留空时默认为 minglog666<br />
-              示例：<br />
-              2022001,张三,zhangsan@email.com,minglog666<br />
-              2022002,李四,lisi@email.com,<br />
-              2022003,王五,wangwu@email.com
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <button
+                type="button"
+                onClick={handleDownloadTemplate}
+                className="flex items-center justify-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-3 text-sm text-blue-700 hover:bg-blue-100 transition-colors"
+              >
+                <Download className="w-4 h-4" />下载示例文件
+              </button>
+              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
+                <Upload className="w-4 h-4" />选择 Excel
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  className="hidden"
+                  onChange={e => handleExcelFile(e.target.files?.[0])}
+                />
+              </label>
             </div>
-            <textarea
-              value={bulkText}
-              onChange={e => { setBulkText(e.target.value); setBulkError(''); setBulkSuccess(0); }}
-              placeholder="每行一名学生，按格式输入..."
-              rows={8}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-            />
+            <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-500 mb-3">
+              <div className="flex items-center gap-2 text-gray-700 mb-1">
+                <FileSpreadsheet className="w-4 h-4 text-green-600" />
+                <span>模板列：学号、姓名、邮箱、初始密码</span>
+              </div>
+              <p>学号和姓名必填；邮箱、初始密码可留空，初始密码空时默认为 minglog666。</p>
+            </div>
+            {selectedFileName && (
+              <div className="mb-2 text-sm text-gray-600 bg-white border border-gray-100 rounded-lg px-3 py-2 flex items-center gap-2">
+                <FileSpreadsheet className="w-4 h-4 text-green-600" />{selectedFileName}
+              </div>
+            )}
             {bulkError && (
               <div className="mt-2 text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2 whitespace-pre-line">
                 <AlertCircle className="w-4 h-4 inline mr-1" />{bulkError}
@@ -273,9 +323,9 @@ export function ClassDetailPage() {
             )}
             <div className="flex gap-3 mt-4">
               <Dialog.Close className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50">关闭</Dialog.Close>
-              <button onClick={handleBulkImport} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors">
-                导入
-              </button>
+              <Dialog.Close className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors text-center">
+                完成
+              </Dialog.Close>
             </div>
           </Dialog.Content>
         </Dialog.Portal>

@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.hypothesis/
+tests/
+homework.db
+homework.db.backup-*
+uploaded_files/
+.env
+*.log

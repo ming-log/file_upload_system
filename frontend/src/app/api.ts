@@ -94,7 +94,11 @@ export const authApi = {
     api.post<LoginResponse>('/auth/login/student', { school, studentId, password, captchaId, captcha }),
   loginTeacher: (account: string, password: string) =>
     api.post<LoginResponse>('/auth/login/teacher', { account, password }),
-  sendEmailCode: () => api.post<{ status: string; email: string }>('/auth/email/send-code'),
+  sendEmailCode: (email?: string) =>
+    api.post<{ status: string; email: string }>(
+      '/auth/email/send-code',
+      email ? { email } : undefined,
+    ),
   verifyEmail: (code: string, newPassword: string) =>
     api.post<{ status: string; user: AuthUser }>('/auth/email/verify', { code, newPassword }),
 };

@@ -46,31 +46,6 @@ export function LoginPage() {
     refreshCaptcha();
   }, [refreshCaptcha]);
 
-  // 演示账号（上线后可删除此区块）。点击快速填入对应表单并切换登录方式。
-  const demoStudents = [
-    { school: '清华大学', studentId: '2022001', password: 'minglog666', name: '李明' },
-  ];
-  const demoTeachers = [
-    { role: '管理员', account: 'admin', password: 'admin123', color: 'bg-purple-100 text-purple-700 border-purple-200' },
-    { role: '教师', account: 'teacher001', password: 'teacher123', color: 'bg-blue-100 text-blue-700 border-blue-200' },
-  ];
-
-  const fillStudentDemo = (d: { school: string; studentId: string; password: string }) => {
-    setMode('student');
-    setSchool(d.school);
-    setStudentId(d.studentId);
-    setPassword(d.password);
-    setError('');
-    refreshCaptcha();
-  };
-
-  const fillTeacherDemo = (d: { account: string; password: string }) => {
-    setMode('teacher');
-    setAccount(d.account);
-    setPassword(d.password);
-    setError('');
-  };
-
   const switchMode = (m: LoginMode) => {
     setMode(m);
     setError('');
@@ -136,49 +111,7 @@ export function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-4xl flex flex-col lg:flex-row items-center lg:items-stretch gap-6">
-        {/* 左侧：演示账号（上线后删除） */}
-        <div className="w-full max-w-md lg:w-72 lg:flex-shrink-0">
-          <div className="bg-white/70 backdrop-blur rounded-2xl border border-gray-100 shadow-sm p-5 h-full">
-            <p className="text-sm text-gray-700 font-medium mb-1">演示账号</p>
-            <p className="text-xs text-gray-400 mb-4">点击快速填入（验证码仍需手动输入）</p>
-
-            <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
-              <GraduationCap className="w-3.5 h-3.5" />学生
-            </p>
-            <div className="space-y-2 mb-4">
-              {demoStudents.map(d => (
-                <button
-                  key={d.studentId}
-                  onClick={() => fillStudentDemo(d)}
-                  className="w-full px-3 py-2 rounded-lg border bg-green-100 text-green-700 border-green-200 hover:opacity-80 transition-opacity text-left"
-                >
-                  <div className="text-xs font-medium">{d.name}</div>
-                  <div className="text-[11px] font-mono mt-0.5 truncate">{d.school} / {d.studentId} / {d.password}</div>
-                </button>
-              ))}
-            </div>
-
-            <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
-              <User className="w-3.5 h-3.5" />教师 / 管理员
-            </p>
-            <div className="space-y-2">
-              {demoTeachers.map(d => (
-                <button
-                  key={d.account}
-                  onClick={() => fillTeacherDemo(d)}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border text-xs ${d.color} hover:opacity-80 transition-opacity text-left`}
-                >
-                  <span className="font-medium">{d.role}</span>
-                  <span className="font-mono">{d.account} / {d.password}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* 右侧：登录区 */}
-        <div className="w-full max-w-md">
+      <div className="w-full max-w-md">
           {/* Logo */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-2xl shadow-lg mb-4 overflow-hidden">
@@ -302,7 +235,6 @@ export function LoginPage() {
             © {new Date().getFullYear()} 作业提交系统 · Designed &amp; Developed by minglog
           </p>
         </div>
-      </div>
     </div>
   );
 }

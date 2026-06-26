@@ -80,6 +80,23 @@ pnpm dev
 - 开发环境下 `/api` 请求由 Vite 代理到后端 `http://localhost:8000`（见 `vite.config.ts`）。
   可用环境变量 `VITE_API_TARGET` 覆盖后端地址。
 
+### 3. 使用 Docker Compose 启动
+
+```bash
+docker compose up --build
+```
+
+- 前端：http://localhost:5173
+- 后端：http://localhost:8000
+- Swagger：http://localhost:8000/docs
+
+容器默认使用 Docker volume `backend_data` 持久化 SQLite 数据库与上传文件。全新
+volume 不包含任何演示账号，首次使用需进入后端容器创建管理员：
+
+```bash
+docker compose exec backend python -m app.create_admin --account admin --email admin@example.com
+```
+
 ---
 
 ## ⚙️ 配置（环境变量）

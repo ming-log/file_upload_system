@@ -14,6 +14,7 @@ desktop.ini
 .env
 .env.*
 !.env.example
+!.env.prod.example
 *.local
 
 # ---- 日志 ----
@@ -30,3 +31,4 @@ node_modules/
 # ---- 运行时产物 ----
 *.db
 uploaded_files/
+data/

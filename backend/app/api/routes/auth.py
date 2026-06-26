@@ -8,7 +8,8 @@
 * **教师登录**（管理员也走此入口，界面显示「教师登录」）：账号 + 密码，**无需验证码**。
 
 邮箱验证与改密流程（学生）：
-* ``POST /auth/email/send-code``：已认证学生请求向其邮箱发送 6 位验证码。
+* ``POST /auth/email/send-code``：已认证学生请求向其邮箱发送 6 位验证码；学生无邮箱时
+  可在请求体中提交邮箱并先绑定。
 * ``POST /auth/email/verify``：提交验证码 + 新密码，校验通过后标记邮箱已验证并改密。
 
 辅助：
@@ -79,6 +80,10 @@ class LoginResponse(BaseModel):
 class SendCodeResponse(BaseModel):
     status: str = Field(default="ok")
     email: str = Field(..., description="验证码发送到的邮箱（脱敏）")
+
+
+class SendCodeRequest(BaseModel):
+    email: Optional[str] = Field(default=None, description="学生首次验证时绑定的邮箱")
 
 
 class VerifyEmailRequest(BaseModel):
@@ -195,6 +200,7 @@ def login_teacher(
 
 @router.post("/email/send-code", response_model=SendCodeResponse, summary="发送邮箱验证码")
 async def send_email_code(
+    body: SendCodeRequest | None = None,
     current: CurrentUser = Depends(get_current_user),
     repository: Repository = Depends(get_repository),
     email_service=Depends(get_email_service),
@@ -203,10 +209,17 @@ async def send_email_code(
     user = repository.get_user(current.user_id)
     if user is None:
         raise http_exception_for(ErrorCode.FORBIDDEN)
-    if not validate_required(user.email) or not validate_email(user.email or "").ok:
-        raise http_exception_for(
-            ErrorCode.INVALID_EMAIL_FORMAT, message="邮箱缺失或格式不正确，请联系老师更正"
-        )
+    requested_email = body.email if body is not None and body.email is not None else None
+    target_email = (requested_email if user.role == "student" and requested_email is not None else user.email) or ""
+    target_email = target_email.strip()
+    if not validate_required(target_email) or not validate_email(target_email).ok:
+        message = "邮箱缺失或格式不正确，请输入正确邮箱" if user.role == "student" else "邮箱缺失或格式不正确，请联系管理员更正"
+        raise http_exception_for(ErrorCode.INVALID_EMAIL_FORMAT, message=message)
+
+    if user.role == "student" and target_email != (user.email or ""):
+        with repository.transaction():
+            user.email = target_email
+            user.email_verified = False
 
     code = verification.generate(user.id)
     subject = "作业提交系统 - 邮箱验证码"
@@ -216,12 +229,12 @@ async def send_email_code(
         f"验证码 10 分钟内有效，请在登录页完成邮箱验证与密码修改。\n\n"
         f"如非本人操作，请忽略本邮件。"
     )
-    sent = await email_service.send_message(user.email, subject, body)
+    sent = await email_service.send_message(target_email, subject, body)
     if not sent:
         raise http_exception_for(
             ErrorCode.STORAGE_FAILED, message="验证码邮件发送失败，请稍后重试"
         )
-    return SendCodeResponse(status="ok", email=_mask_email(user.email))
+    return SendCodeResponse(status="ok", email=_mask_email(target_email))
 
 
 @router.post("/email/verify", summary="校验邮箱验证码并修改密码")

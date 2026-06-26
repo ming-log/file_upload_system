@@ -142,8 +142,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const finishLogin = useCallback(async (res: { access_token: string; user: AuthUser }) => {
     setToken(res.access_token);
     setCurrentUser(res.user);
-    // 学生/教师未完成邮箱验证时，停留在验证页由前端引导，暂不加载数据（管理员豁免）。
-    if ((res.user.role === 'student' || res.user.role === 'teacher') && res.user.emailVerified === false) {
+    // 学生未完成邮箱验证时，停留在验证页由前端引导，暂不加载数据。
+    if (res.user.role === 'student' && res.user.emailVerified === false) {
       return;
     }
     setCurrentPage(initialPageFor(res.user));

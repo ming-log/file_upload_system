@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { MailCheck, AlertCircle, ShieldCheck, LogOut, Send } from 'lucide-react';
+import { Mail, MailCheck, AlertCircle, ShieldCheck, LogOut, Send } from 'lucide-react';
 import { useApp } from '../../context';
 import { authApi, ApiError } from '../../api';
 import { PasswordInput } from '../ui/PasswordInput';
 
-// 学生与教师首次登录后的强制邮箱验证 + 改密界面（管理员豁免）。
-// 流程：发送验证码到邮箱 -> 输入验证码 + 新密码 -> 校验通过后进入应用。
+// 学生首次登录后的强制邮箱验证 + 改密界面。
+// 流程：必要时先绑定邮箱 -> 发送验证码 -> 输入验证码 + 新密码 -> 校验通过后进入应用。
 export function EmailVerificationGate() {
   const { currentUser, onEmailVerified, logout } = useApp();
+  const [email, setEmail] = useState(currentUser?.email || '');
   const [codeSent, setCodeSent] = useState(false);
   const [maskedEmail, setMaskedEmail] = useState('');
   const [code, setCode] = useState('');
@@ -32,9 +33,14 @@ export function EmailVerificationGate() {
   const handleSendCode = async () => {
     setError('');
     setInfo('');
+    const targetEmail = email.trim();
+    if (!currentUser?.email) {
+      if (!targetEmail) { setError('请输入邮箱'); return; }
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(targetEmail)) { setError('邮箱格式不正确'); return; }
+    }
     setSending(true);
     try {
-      const res = await authApi.sendEmailCode();
+      const res = await authApi.sendEmailCode(currentUser?.email ? undefined : targetEmail);
       setCodeSent(true);
       setMaskedEmail(res.email);
       setInfo(`验证码已发送至 ${res.email}，10 分钟内有效`);
@@ -86,6 +92,23 @@ export function EmailVerificationGate() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {!currentUser?.email && (
+              <div>
+                <label className="block text-sm text-gray-700 mb-1.5">绑定邮箱</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={e => { setEmail(e.target.value); setCodeSent(false); setInfo(''); setError(''); }}
+                    placeholder="请输入可接收验证码的邮箱"
+                    autoComplete="email"
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+            )}
+
             {/* 验证码 + 发送 */}
             <div>
               <label className="block text-sm text-gray-700 mb-1.5">邮箱验证码</label>

@@ -50,7 +50,7 @@ class ClassPayload(BaseModel):
 class StudentPayload(BaseModel):
     studentId: str = Field(..., description="学号（系统内唯一）")
     name: str = Field(..., description="姓名")
-    email: str = Field(..., description="邮箱（必填）")
+    email: str = Field(default="", description="邮箱（可选）")
     password: str = Field(default="", description="密码，留空默认 minglog666")
 
 
@@ -85,10 +85,7 @@ def _validate_student(
 ) -> Optional[ErrorCode]:
     if not validate_required(body.studentId) or not validate_required(body.name):
         return ErrorCode.MISSING_REQUIRED_FIELD
-    # 邮箱为必填项。
-    if not validate_required(body.email):
-        return ErrorCode.MISSING_REQUIRED_FIELD
-    if not validate_email(body.email).ok:
+    if validate_required(body.email) and not validate_email(body.email).ok:
         return ErrorCode.INVALID_EMAIL_FORMAT
     # 学号仅在同一学校内唯一（不同学校可重复）。
     if repo.student_id_exists_in_school(body.studentId, school, exclude_id=exclude_id):
@@ -200,7 +197,7 @@ def create_student(
             role="student",
             account=body.studentId.strip(),
             name=body.name.strip(),
-            email=body.email.strip(),
+            email=body.email.strip() or None,
             password=body.password.strip() or DEFAULT_PASSWORD,
             student_id=body.studentId.strip(),
             class_id=class_id,
@@ -224,10 +221,13 @@ def update_student(
     if error is not None:
         raise http_exception_for(error)
     with repository.transaction():
+        normalized_email = body.email.strip()
+        if normalized_email != (student.email or ""):
+            student.email_verified = False
         student.student_id = body.studentId.strip()
         student.account = body.studentId.strip()
         student.name = body.name.strip()
-        student.email = body.email.strip()
+        student.email = normalized_email or None
         if body.password.strip():
             student.password = body.password.strip()
     return serialize_student(student)
@@ -277,7 +277,7 @@ def batch_import_students(
                 role="student",
                 account=rec.studentId.strip(),
                 name=rec.name.strip(),
-                email=rec.email.strip(),
+                email=rec.email.strip() or None,
                 password=rec.password.strip() or DEFAULT_PASSWORD,
                 student_id=rec.studentId.strip(),
                 class_id=class_id,
