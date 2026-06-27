@@ -31,6 +31,12 @@ file_upload_system/
 │   │   └── components/       # 登录 / 布局 / 管理员·教师·学生页面
 │   ├── vite.config.ts        # /api 代理到后端
 │   └── package.json
+├── docs/
+│   └── docker-image-packaging-and-deploy.md # 镜像打包、导出与服务器部署
+├── docker-compose.yml        # 本地开发/测试 Docker Compose
+├── docker-compose.prod.yml   # 服务器生产 Docker Compose
+├── .env.prod.example         # 生产环境变量模板
+├── DEPLOY.md                 # 服务器部署说明
 └── .kiro/specs/homework-upload-system/   # 需求 / 设计 / 任务文档
 ```
 
@@ -96,6 +102,81 @@ volume 不包含任何演示账号，首次使用需进入后端容器创建管�
 ```bash
 docker compose exec backend python -m app.create_admin --account admin --email admin@example.com
 ```
+
+### 4. 生产 Docker 部署
+
+生产部署推荐先在本机构建最新镜像，导出为 tar 包，再上传服务器运行。详细流程见：
+
+- `DEPLOY.md`
+- `docs/docker-image-packaging-and-deploy.md`
+
+本机构建镜像：
+
+```bash
+docker compose build backend frontend
+```
+
+如果在 WSL 中构建且需要使用 Windows 本机代理，代理 IP 可能会随 WSL/Docker 网络变化。每次构建前建议重新获取默认网关：
+
+```bash
+WSL_GATEWAY=$(ip route | awk '/default/ {print $3; exit}')
+
+export HTTP_PROXY=http://$WSL_GATEWAY:7890
+export HTTPS_PROXY=http://$WSL_GATEWAY:7890
+export http_proxy=$HTTP_PROXY
+export https_proxy=$HTTPS_PROXY
+export NO_PROXY=localhost,127.0.0.1,::1
+export no_proxy=$NO_PROXY
+
+docker compose build backend frontend
+```
+
+导出镜像：
+
+```bash
+docker save -o homework-upload-system-images.tar \
+  homework-upload-system-backend:local \
+  homework-upload-system-frontend:local
+gzip -f homework-upload-system-images.tar
+```
+
+服务器至少上传：
+
+```text
+homework-upload-system-images.tar.gz
+docker-compose.prod.yml
+.env.prod.example
+```
+
+服务器加载并启动：
+
+```bash
+gunzip -c homework-upload-system-images.tar.gz | docker load
+cp .env.prod.example .env.prod
+# 编辑 .env.prod：FRONTEND_PORT、CORS_ORIGINS、AUTH_SECRET_KEY、ADMIN_*、SMTP_* 等
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --force-recreate
+```
+
+生产 compose 默认将前端容器 `80` 端口映射到 `.env.prod` 中的 `FRONTEND_PORT`，当前模板默认：
+
+```env
+FRONTEND_PORT=8880
+```
+
+因此默认访问：
+
+```text
+http://服务器IP:8880/
+```
+
+后端数据默认持久化到服务器部署目录：
+
+```text
+./data/backend/homework.db
+./data/backend/uploaded_files
+```
+
+不要删除 `./data/backend`，否则会丢失 SQLite 数据库和本地上传文件。
 
 ---
 
