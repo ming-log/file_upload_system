@@ -424,12 +424,12 @@ export function AssignmentsPage() {
       {/* View Submissions Dialog */}
       <Dialog.Root open={!!viewSubmissions} onOpenChange={o => !o && setViewSubmissions(null)}>
         <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 bg-black/40 z-50" />
-          <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl z-50 w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <Dialog.Overlay className="fixed inset-0 bg-black/45 backdrop-blur-sm z-50" />
+          <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-3xl shadow-2xl z-50 w-[calc(100vw-2rem)] max-w-5xl max-h-[86vh] overflow-hidden flex flex-col border border-white/80">
+            <div className="flex items-center justify-between gap-4 px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-blue-50 via-white to-emerald-50">
               <div>
-                <Dialog.Title className="text-lg text-gray-900">{selectedAssignment?.title}</Dialog.Title>
-                <p className="text-sm text-gray-500">提交记录 - {assignmentSubmissions.length} / {viewSubmissions ? getAssignmentStudents(viewSubmissions).length : 0} 人已提交</p>
+                <Dialog.Title className="text-xl font-semibold text-gray-900">{selectedAssignment?.title}</Dialog.Title>
+                <p className="mt-1 text-sm text-gray-500">提交记录 - {assignmentSubmissions.length} / {viewSubmissions ? getAssignmentStudents(viewSubmissions).length : 0} 人已提交</p>
               </div>
               <div className="flex items-center gap-2">
                 {selectedAssignment && (
@@ -449,23 +449,24 @@ export function AssignmentsPage() {
                 <Dialog.Close className="p-1 rounded-lg hover:bg-gray-100 text-gray-400"><X className="w-5 h-5" /></Dialog.Close>
               </div>
             </div>
-            <div className="overflow-y-auto flex-1">
+            <div className="overflow-auto flex-1 bg-slate-50/60 p-4">
               {viewSubmissions && (() => {
                 const assignStudents = getAssignmentStudents(viewSubmissions);
                 return assignStudents.length === 0 ? (
                   <div className="text-center py-12 text-gray-400">该课程暂无学生</div>
                 ) : (
-                  <table className="w-full">
-                    <thead className="sticky top-0 bg-white border-b border-gray-100">
+                  <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+                    <table className="w-full table-fixed">
+                    <thead className="sticky top-0 bg-slate-100/95 backdrop-blur border-b border-gray-200 z-10">
                       <tr>
-                        <th className="text-left px-4 py-3 text-xs text-gray-500 uppercase">学号</th>
-                        <th className="text-left px-4 py-3 text-xs text-gray-500 uppercase">姓名</th>
-                        <th className="text-left px-4 py-3 text-xs text-gray-500 uppercase">状态</th>
-                        <th className="text-left px-4 py-3 text-xs text-gray-500 uppercase">提交时间</th>
-                        <th className="text-left px-4 py-3 text-xs text-gray-500 uppercase">文件</th>
+                        <th className="w-32 text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">学号</th>
+                        <th className="w-32 text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">姓名</th>
+                        <th className="w-36 text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">状态</th>
+                        <th className="w-44 text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">提交时间</th>
+                        <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">文件</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-gray-100">
                       {assignStudents.map(s => {
                         const sub = assignmentSubmissions.find(sb => sb.studentId === s.id);
                         const isLate = sub && selectedAssignment && (() => {
@@ -474,22 +475,22 @@ export function AssignmentsPage() {
                           return !!(sa && dl && sa > dl);
                         })();
                         return (
-                          <tr key={s.id} className="border-b border-gray-50 hover:bg-gray-50">
-                            <td className="px-4 py-3 text-sm font-mono text-gray-700">{s.studentId}</td>
-                            <td className="px-4 py-3 text-sm text-gray-800">{s.name}</td>
-                            <td className="px-4 py-3">
+                          <tr key={s.id} className="hover:bg-blue-50/40 transition-colors">
+                            <td className="px-4 py-4 text-sm font-mono text-gray-700 whitespace-nowrap">{s.studentId}</td>
+                            <td className="px-4 py-4 text-sm font-medium text-gray-900 whitespace-nowrap">{s.name}</td>
+                            <td className="px-4 py-4 whitespace-nowrap">
                               {sub ? (
-                                <span className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-1 w-fit ${isLate ? 'bg-amber-50 text-amber-700' : 'bg-green-50 text-green-700'}`}>
+                                <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ${isLate ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-100' : 'bg-green-50 text-green-700 ring-1 ring-green-100'}`}>
                                   <CheckCircle2 className="w-3 h-3" />{isLate ? '已提交(迟交)' : '已提交'}
                                 </span>
                               ) : (
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">未提交</span>
+                                <span className="inline-flex items-center whitespace-nowrap rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-500 ring-1 ring-gray-200">未提交</span>
                               )}
                             </td>
-                            <td className="px-4 py-3 text-sm text-gray-500">
+                            <td className="px-4 py-4 text-sm text-gray-500 whitespace-nowrap">
                               {sub ? formatDateTime(sub.submittedAt) : '—'}
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-4 py-4 min-w-0">
                               {sub ? (
                                 <div className="space-y-1">
                                   {sub.files.map((f, i) => (
@@ -498,10 +499,10 @@ export function AssignmentsPage() {
                                       onClick={() => f.storageId && downloadFile(sub.id, f.storageId, f.name)}
                                       disabled={!f.storageId}
                                       title={f.storageId ? '点击下载' : '无法下载'}
-                                      className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-blue-600 disabled:hover:text-gray-600 disabled:cursor-not-allowed transition-colors"
+                                      className="flex max-w-full items-center gap-1.5 text-xs text-gray-600 hover:text-blue-600 disabled:hover:text-gray-600 disabled:cursor-not-allowed transition-colors"
                                     >
                                       <FileText className="w-3 h-3 text-blue-500" />
-                                      <span className="truncate max-w-[140px] underline-offset-2 hover:underline">{f.name}</span>
+                                      <span className="truncate underline-offset-2 hover:underline">{f.name}</span>
                                       <span className="text-gray-400">({formatFileSize(f.size)})</span>
                                       {f.storageId && <Download className="w-3 h-3 text-gray-300" />}
                                     </button>
@@ -515,6 +516,7 @@ export function AssignmentsPage() {
                       })}
                     </tbody>
                   </table>
+                  </div>
                 );
               })()}
             </div>
