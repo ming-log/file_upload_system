@@ -8,6 +8,8 @@ import type {
 } from './types';
 
 const TOKEN_KEY = 'auth_token';
+export const AUTH_EXPIRED_EVENT = 'app:auth-expired';
+const UNAUTHENTICATED_CODE = 'UNAUTHENTICATED';
 
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
@@ -28,12 +30,55 @@ export class ApiError extends Error {
   }
 }
 
-const BASE = '/api';
+export function isAuthExpiredError(error: unknown): boolean {
+  return error instanceof ApiError && error.code === UNAUTHENTICATED_CODE;
+}
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+export function getAuthHeaders(): Record<string, string> {
   const headers: Record<string, string> = {};
   const token = getToken();
   if (token) headers['Authorization'] = `Bearer ${token}`;
+  return headers;
+}
+
+function notifyAuthExpired(error: ApiError) {
+  if (!isAuthExpiredError(error) || typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT, { detail: error }));
+}
+
+function apiErrorFromData(
+  res: Response,
+  data: any,
+  fallbackMessage: string,
+): ApiError {
+  const detail = data?.detail;
+  const code = typeof detail === 'object' ? detail?.error_code : undefined;
+  const message = typeof detail === 'object'
+    ? detail?.message
+    : (detail || res.statusText || fallbackMessage);
+  const error = new ApiError(res.status, message || fallbackMessage, code);
+  notifyAuthExpired(error);
+  return error;
+}
+
+export async function apiErrorFromResponse(
+  res: Response,
+  fallbackMessage = '请求失败',
+): Promise<ApiError> {
+  const text = await res.text();
+  let data = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = null;
+  }
+  return apiErrorFromData(res, data, fallbackMessage);
+}
+
+const BASE = '/api';
+
+async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const headers = getAuthHeaders();
 
   let payload: BodyInit | undefined;
   if (body instanceof FormData) {
@@ -51,10 +96,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   const data = text ? JSON.parse(text) : null;
 
   if (!res.ok) {
-    const detail = data?.detail;
-    const code = typeof detail === 'object' ? detail?.error_code : undefined;
-    const message = typeof detail === 'object' ? detail?.message : (detail || res.statusText);
-    throw new ApiError(res.status, message || '请求失败', code);
+    throw apiErrorFromData(res, data, '请求失败');
   }
   return data as T;
 }
@@ -197,19 +239,10 @@ export const submissionsApi = {
 
 // 通用：带鉴权头请求一个会返回文件流的端点，解析文件名并返回 Blob。
 async function downloadZip(url: string): Promise<{ blob: Blob; filename: string }> {
-  const headers: Record<string, string> = {};
-  const token = getToken();
-  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const headers = getAuthHeaders();
   const res = await fetch(url, { headers });
   if (!res.ok) {
-    const text = await res.text();
-    let message = res.statusText;
-    try {
-      const data = text ? JSON.parse(text) : null;
-      const detail = data?.detail;
-      message = typeof detail === 'object' ? detail?.message : (detail || message);
-    } catch { /* 非 JSON 响应，保留状态文本 */ }
-    throw new ApiError(res.status, message || '导出失败');
+    throw await apiErrorFromResponse(res, '导出失败');
   }
   let filename = '提交汇总.zip';
   const cd = res.headers.get('Content-Disposition') || '';

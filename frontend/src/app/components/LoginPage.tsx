@@ -3,6 +3,7 @@ import { User, AlertCircle, ShieldCheck, RefreshCw, GraduationCap, School } from
 import { useApp } from '../context';
 import { authApi, ApiError } from '../api';
 import { PasswordInput } from './ui/PasswordInput';
+import { AnimatedCharacters } from './ui/animated-characters';
 
 type LoginMode = 'student' | 'teacher';
 
@@ -14,6 +15,8 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // 学生
   const [schools, setSchools] = useState<string[]>([]);
@@ -50,6 +53,7 @@ export function LoginPage() {
     setMode(m);
     setError('');
     setPassword('');
+    setShowPassword(false);
     if (m === 'student') refreshCaptcha();
   };
 
@@ -106,12 +110,74 @@ export function LoginPage() {
     }
   };
 
-  const inputClass = 'w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900';
-  const pwInputClass = 'w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900';
+  const inputClass = 'w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg bg-white/80 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900 shadow-sm';
+  const pwInputClass = 'w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-lg bg-white/80 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900 shadow-sm';
+  const typingHandlers = {
+    onFocus: () => setIsTyping(true),
+    onBlur: () => setIsTyping(false),
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="grid min-h-screen overflow-hidden bg-gradient-to-br from-sky-50 via-white to-indigo-50 lg:grid-cols-[minmax(0,1.05fr)_minmax(440px,0.95fr)]">
+      <div className="relative hidden overflow-hidden border-r border-blue-100/80 bg-white/60 lg:flex">
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            backgroundImage:
+              'linear-gradient(rgba(37,99,235,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(37,99,235,0.06) 1px, transparent 1px)',
+            backgroundSize: '28px 28px',
+          }}
+        />
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(circle at 50% 48%, rgba(37,99,235,0.15) 0%, transparent 42%), linear-gradient(145deg, rgba(14,165,233,0.12), transparent 60%)',
+          }}
+        />
+
+        <div className="relative z-10 flex w-full flex-col justify-between p-10 xl:p-12">
+          <div className="inline-flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-lg">
+              <img src="/logo.png" alt="LOGO" className="h-full w-full object-contain" />
+            </div>
+            <div>
+              <p className="text-lg font-semibold text-gray-900">作业提交系统</p>
+              <p className="text-xs text-gray-500">Assignment Upload & Management System</p>
+            </div>
+          </div>
+
+          <div className="absolute inset-0 z-10 flex items-center justify-center">
+            <div className="relative scale-[0.78] xl:scale-90 2xl:scale-100">
+              <div className="absolute inset-x-8 bottom-0 top-10 rounded-full bg-blue-500/10 blur-3xl" />
+              <AnimatedCharacters
+                isTyping={isTyping}
+                showPassword={showPassword}
+                passwordLength={password.length}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="relative flex min-h-screen items-center justify-center overflow-y-auto p-4 sm:p-6 lg:p-10">
+        <div
+          className="pointer-events-none absolute inset-0 lg:hidden"
+          style={{
+            backgroundImage:
+              'linear-gradient(rgba(37,99,235,0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(37,99,235,0.045) 1px, transparent 1px)',
+            backgroundSize: '28px 28px',
+          }}
+        />
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(circle at 78% 12%, rgba(37,99,235,0.11), transparent 30%)',
+          }}
+        />
+
+        <div className="relative z-10 w-full max-w-md">
           {/* Logo */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-2xl shadow-lg mb-4 overflow-hidden">
@@ -152,6 +218,7 @@ export function LoginPage() {
                     <select
                       value={school}
                       onChange={e => setSchool(e.target.value)}
+                      {...typingHandlers}
                       className={`${inputClass} appearance-none`}
                     >
                       <option value="">请选择学校</option>
@@ -166,12 +233,20 @@ export function LoginPage() {
                   <label className="block text-sm text-gray-700 mb-1.5">学号</label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input type="text" value={studentId} onChange={e => setStudentId(e.target.value)} placeholder="请输入学号" className={inputClass} />
+                    <input type="text" value={studentId} onChange={e => setStudentId(e.target.value)} placeholder="请输入学号" className={inputClass} {...typingHandlers} />
                   </div>
                 </div>
                 <div>
                   <label className="block text-sm text-gray-700 mb-1.5">密码</label>
-                  <PasswordInput value={password} onChange={setPassword} placeholder="请输入密码" className={pwInputClass} />
+                  <PasswordInput
+                    value={password}
+                    onChange={setPassword}
+                    placeholder="请输入密码"
+                    className={pwInputClass}
+                    onFocus={() => setIsTyping(true)}
+                    onBlur={() => setIsTyping(false)}
+                    onVisibleChange={setShowPassword}
+                  />
                 </div>
                 {/* 验证码 */}
                 <div>
@@ -180,6 +255,7 @@ export function LoginPage() {
                     <div className="relative flex-1">
                       <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <input type="text" value={captcha} onChange={e => setCaptcha(e.target.value)} placeholder="请输入图中字符" autoComplete="off" maxLength={8}
+                        {...typingHandlers}
                         className={`${inputClass} uppercase tracking-widest`} />
                     </div>
                     <button type="button" onClick={refreshCaptcha} title="点击刷新验证码"
@@ -208,12 +284,20 @@ export function LoginPage() {
                   <label className="block text-sm text-gray-700 mb-1.5">账号</label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input type="text" value={account} onChange={e => setAccount(e.target.value)} placeholder="请输入教师/管理员账号" className={inputClass} />
+                    <input type="text" value={account} onChange={e => setAccount(e.target.value)} placeholder="请输入教师/管理员账号" className={inputClass} {...typingHandlers} />
                   </div>
                 </div>
                 <div>
                   <label className="block text-sm text-gray-700 mb-1.5">密码</label>
-                  <PasswordInput value={password} onChange={setPassword} placeholder="请输入密码" className={pwInputClass} />
+                  <PasswordInput
+                    value={password}
+                    onChange={setPassword}
+                    placeholder="请输入密码"
+                    className={pwInputClass}
+                    onFocus={() => setIsTyping(true)}
+                    onBlur={() => setIsTyping(false)}
+                    onVisibleChange={setShowPassword}
+                  />
                 </div>
                 {error && (
                   <div className="flex items-center gap-2 text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2 text-sm">
@@ -235,6 +319,7 @@ export function LoginPage() {
             © {new Date().getFullYear()} 作业提交系统 · Designed &amp; Developed by minglog
           </p>
         </div>
+      </div>
     </div>
   );
 }

@@ -10,6 +10,9 @@ interface PasswordInputProps {
   withIcon?: boolean;
   autoComplete?: string;
   disabled?: boolean;
+  onFocus?: () => void;
+  onBlur?: () => void;
+  onVisibleChange?: (visible: boolean) => void;
 }
 
 // 统一的密码输入框：左侧锁图标（可选），右侧「显示/隐藏明文」切换按钮。
@@ -21,6 +24,9 @@ export function PasswordInput({
   withIcon = true,
   autoComplete = 'off',
   disabled = false,
+  onFocus,
+  onBlur,
+  onVisibleChange,
 }: PasswordInputProps) {
   const [visible, setVisible] = useState(false);
   const base = withIcon
@@ -38,11 +44,19 @@ export function PasswordInput({
         placeholder={placeholder}
         autoComplete={autoComplete}
         disabled={disabled}
+        onFocus={onFocus}
+        onBlur={onBlur}
         className={className || base}
       />
       <button
         type="button"
-        onClick={() => setVisible(v => !v)}
+        onClick={() => {
+          setVisible(v => {
+            const next = !v;
+            onVisibleChange?.(next);
+            return next;
+          });
+        }}
         tabIndex={-1}
         title={visible ? '隐藏密码' : '显示密码'}
         className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors"

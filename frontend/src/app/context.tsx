@@ -1,13 +1,14 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import type {
   AuthUser, User, Class, Student, Course, Assignment, Submission, Page,
 } from './types';
 import {
-  ApiError, setToken, getToken,
+  AUTH_EXPIRED_EVENT, ApiError, setToken, getToken, isAuthExpiredError,
   authApi, usersApi, classesApi, studentsApi, coursesApi, assignmentsApi, submissionsApi,
 } from './api';
 
 const CURRENT_USER_KEY = 'currentUser';
+const AUTH_EXPIRED_MESSAGE = '登录状态已过期，请重新登录';
 
 function loadCurrentUser(): AuthUser | null {
   try {
@@ -73,6 +74,7 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | null>(null);
 
 function reportError(e: unknown) {
+  if (isAuthExpiredError(e)) return;
   if (e instanceof ApiError) {
     // eslint-disable-next-line no-alert
     alert(e.message || '操作失败');
@@ -95,6 +97,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const authExpiredNotifiedRef = useRef(false);
+
+  const clearSession = useCallback(() => {
+    setToken(null);
+    setCurrentUser(null);
+    setCurrentPage('login');
+    setSelectedClassId(null);
+    setSelectedAssignmentId(null);
+    setUsers([]); setClasses([]); setStudents([]);
+    setCourses([]); setAssignments([]); setSubmissions([]);
+  }, []);
+
+  const handleAuthExpired = useCallback(() => {
+    clearSession();
+    if (authExpiredNotifiedRef.current) return;
+    authExpiredNotifiedRef.current = true;
+    // eslint-disable-next-line no-alert
+    alert(AUTH_EXPIRED_MESSAGE);
+  }, [clearSession]);
+
+  useEffect(() => {
+    window.addEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
+  }, [handleAuthExpired]);
 
   // 按角色加载可访问的数据集合（容错：单个失败不影响其它）。
   const loadAll = useCallback(async (user: AuthUser) => {
@@ -140,6 +166,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [currentUser, loadAll]);
 
   const finishLogin = useCallback(async (res: { access_token: string; user: AuthUser }) => {
+    authExpiredNotifiedRef.current = false;
     setToken(res.access_token);
     setCurrentUser(res.user);
     // 学生未完成邮箱验证时，停留在验证页由前端引导，暂不加载数据。
@@ -194,14 +221,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [loadAll]);
 
   const logout = useCallback(() => {
-    setToken(null);
-    setCurrentUser(null);
-    setCurrentPage('login');
-    setSelectedClassId(null);
-    setSelectedAssignmentId(null);
-    setUsers([]); setClasses([]); setStudents([]);
-    setCourses([]); setAssignments([]); setSubmissions([]);
-  }, []);
+    authExpiredNotifiedRef.current = false;
+    clearSession();
+  }, [clearSession]);
 
   const navigate = useCallback((page: Page, opts?: { classId?: string; assignmentId?: string }) => {
     setCurrentPage(page);

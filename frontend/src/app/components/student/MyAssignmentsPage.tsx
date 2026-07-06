@@ -2,7 +2,9 @@ import { useState, useRef } from 'react';
 import { FileText, Upload, CheckCircle2, Clock, XCircle, X, AlertCircle, Paperclip, Trash2, Send, Download } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useApp } from '../../context';
-import { submissionsApi, ApiError } from '../../api';
+import {
+  submissionsApi, ApiError, apiErrorFromResponse, getAuthHeaders, isAuthExpiredError,
+} from '../../api';
 import { parseDateTime, formatDateTime } from '../../datetime';
 import type { Assignment } from '../../types';
 
@@ -54,11 +56,9 @@ export function MyAssignmentsPage() {
   // 下载自己提交的文件（带鉴权头取 Blob 再触发浏览器下载）。
   const downloadFile = async (submissionId: string, storageId: string, name: string) => {
     try {
-      const headers: Record<string, string> = {};
-      const token = localStorage.getItem('auth_token');
-      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const headers = getAuthHeaders();
       const res = await fetch(submissionsApi.fileUrl(submissionId, storageId), { headers });
-      if (!res.ok) throw new ApiError(res.status, '下载失败');
+      if (!res.ok) throw await apiErrorFromResponse(res, '下载失败');
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -69,6 +69,7 @@ export function MyAssignmentsPage() {
       link.remove();
       URL.revokeObjectURL(url);
     } catch (e) {
+      if (isAuthExpiredError(e)) return;
       // eslint-disable-next-line no-alert
       alert(e instanceof ApiError ? (e.message || '下载失败') : '下载失败，请稍后重试');
     }
